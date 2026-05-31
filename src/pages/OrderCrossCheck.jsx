@@ -18,6 +18,39 @@ import { useEffect, useState } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
 
+const formatSriLankaDate = (dateVal) => {
+    if (!dateVal) {
+        const d = new Date();
+        const colomboOffset = 5.5 * 60 * 60 * 1000;
+        const colomboTime = new Date(d.getTime() + colomboOffset);
+        return colomboTime.toISOString().split('T')[0];
+    }
+    if (typeof dateVal === 'string') {
+        const dateOnlyRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateOnlyRegex.test(dateVal)) {
+            return dateVal;
+        }
+        if (dateVal.includes('T') || dateVal.includes(' ')) {
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                const colomboOffset = 5.5 * 60 * 60 * 1000;
+                const colomboTime = new Date(d.getTime() + colomboOffset);
+                return colomboTime.toISOString().split('T')[0];
+            }
+        }
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) {
+        const now = new Date();
+        const colomboOffset = 5.5 * 60 * 60 * 1000;
+        const colomboTime = new Date(now.getTime() + colomboOffset);
+        return colomboTime.toISOString().split('T')[0];
+    }
+    const colomboOffset = 5.5 * 60 * 60 * 1000;
+    const colomboTime = new Date(d.getTime() + colomboOffset);
+    return colomboTime.toISOString().split('T')[0];
+};
+
 const OrderCrossCheck = () => {
     const { showNotification } = useNotification();
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'new'
@@ -167,7 +200,7 @@ const OrderCrossCheck = () => {
 
             const payload = {
                 OCH_ORDER_H_ID: parseInt(selectedOrderId),
-                OCH_ORDER_DATE: selectedOrder.OR_DATE,
+                OCH_ORDER_DATE: formatSriLankaDate(selectedOrder.OR_DATE),
                 OCH_ORDER_TOT_QTY: totalOrderedQty,
                 OCH_CROSS_CHECK_QTY_TOT: totalEnteredQty,
                 OCH_REMARKS: remarks,

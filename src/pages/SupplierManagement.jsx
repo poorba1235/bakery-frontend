@@ -312,7 +312,7 @@ const SupplierManagement = () => {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-2">
                                             <button 
-                                                onClick={() => { setEditingSupplier(sup); setIsAddModalOpen(true); }}
+                                                onClick={() => { setEditingSupplier(sup); }}
                                                 className="p-3 text-amber-500 hover:bg-amber-500/10 rounded-2xl transition-all shadow-sm"
                                             >
                                                 <Edit2 className="w-4 h-4" />

@@ -69,7 +69,8 @@ const ProductManagement = () => {
         P_INSIDE_ITEM_COUNT: 0,
         P_PACK_OR_SINGLE: 'Single',
         P_ISSUE_BAG_status: 0,
-        actual_barcode: ''
+        actual_barcode: '',
+        P_UNIT_MEASURE_SIZE: 1
     });
 
     const PACK_TYPES = ['Single', 'Pack'];
@@ -107,6 +108,7 @@ const ProductManagement = () => {
                 P_REORDER_LEVEL: product.P_REORDER_LEVEL === 0 || product.P_REORDER_LEVEL === '0' ? '' : product.P_REORDER_LEVEL ?? '',
                 P_MINIMUM_LEVEL: product.P_MINIMUM_LEVEL === 0 || product.P_MINIMUM_LEVEL === '0' ? '' : product.P_MINIMUM_LEVEL ?? '',
                 P_MAXIMUM_LEVEL: product.P_MAXIMUM_LEVEL === 0 || product.P_MAXIMUM_LEVEL === '0' ? '' : product.P_MAXIMUM_LEVEL ?? '',
+                P_UNIT_MEASURE_SIZE: product.P_UNIT_MEASURE_SIZE ?? 1
             });
             setSelectedFile(null);
         } else {
@@ -129,7 +131,8 @@ const ProductManagement = () => {
                 P_INSIDE_ITEM_COUNT: 0,
                 P_PACK_OR_SINGLE: 'Single',
                 P_ISSUE_BAG_status: 0,
-                actual_barcode: ''
+                actual_barcode: '',
+                P_UNIT_MEASURE_SIZE: 1
             });
             try {
                 const [codeRes, barcodeRes] = await Promise.all([
@@ -175,7 +178,8 @@ const ProductManagement = () => {
             'P_MAXIMUM_LEVEL',
             'P_ITEM_STORED_DAYS',
             'P_INSIDE_ITEM_COUNT',
-            'P_ISSUE_BAG_status'
+            'P_ISSUE_BAG_status',
+            'P_UNIT_MEASURE_SIZE'
         ];
 
         // Packaging & Shelf-life validation
@@ -209,16 +213,21 @@ const ProductManagement = () => {
         Object.keys(formData).forEach(key => {
             if (key !== 'P_IMAGE') {
                 let value = formData[key];
-                // If it's a numeric field and empty/null/NaN, default to 0
+                // If it's a numeric field and empty/null/NaN, default to 0 or 1
                 if (numericFields.includes(key)) {
                     if (value === '' || value === null || isNaN(Number(value))) {
-                        value = 0;
+                        value = key === 'P_UNIT_MEASURE_SIZE' ? 1 : 0;
                     }
                 }
 
                 // If 'Single' is selected, force inside count to 0
                 if (key === 'P_INSIDE_ITEM_COUNT' && formData.P_PACK_OR_SINGLE === 'Single') {
                     value = 0;
+                }
+
+                // Force minimum 1 for unit measure size
+                if (key === 'P_UNIT_MEASURE_SIZE' && Number(value) <= 0) {
+                    value = 1;
                 }
 
                 data.append(key, value);
@@ -417,10 +426,17 @@ const ProductManagement = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-widest">
-                                        <span className="flex items-center italic">
-                                            <Ruler className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                                            {p.P_UNIT}
-                                        </span>
+                                        <div className="space-y-1">
+                                            <span className="flex items-center italic">
+                                                <Ruler className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                                                {p.P_UNIT}
+                                            </span>
+                                            {Number(p.P_UNIT_MEASURE_SIZE || 1) > 1 && (
+                                                <div className="mt-1">
+                                                    <span className="inline-flex px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[9px] font-black text-slate-500 lowercase tracking-normal">Size: {p.P_UNIT_MEASURE_SIZE}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="space-y-1">
@@ -700,7 +716,7 @@ const ProductManagement = () => {
                                             <span>Inventory & Thresholds</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                                             <div className="space-y-2">
                                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Unit of Measure</label>
                                                 <SearchableSelect
@@ -708,6 +724,16 @@ const ProductManagement = () => {
                                                     value={formData.P_UNIT}
                                                     onChange={(val) => setFormData({ ...formData, P_UNIT: val })}
                                                     placeholder="Select Unit"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-indigo-500">Unit Measure Size</label>
+                                                <input
+                                                    type="number" min="1" value={formData.P_UNIT_MEASURE_SIZE}
+                                                    onChange={(e) => setFormData({ ...formData, P_UNIT_MEASURE_SIZE: e.target.value })}
+                                                    onKeyDown={handleNumericKeyDown}
+                                                    placeholder="1"
+                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -861,10 +887,14 @@ const ProductManagement = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                <div className="grid grid-cols-4 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Unit</p>
                                         <p className="text-sm font-bold text-slate-700 dark:text-white uppercase tracking-tight">{viewingProduct.P_UNIT}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Measure Size</p>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-white tracking-tight">{viewingProduct.P_UNIT_MEASURE_SIZE || 1}</p>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Barcode</p>

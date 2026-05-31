@@ -31,6 +31,19 @@ import api from '../services/api';
 import ProductLabelPrintContainer from '../components/ProductLabelPrintContainer';
 
 
+const getSriLankaDate = (dateVal) => {
+    const d = dateVal ? new Date(dateVal) : new Date();
+    if (isNaN(d.getTime())) {
+        const now = new Date();
+        const colomboOffset = 5.5 * 60 * 60 * 1000;
+        const colomboTime = new Date(now.getTime() + colomboOffset);
+        return colomboTime.toISOString().split('T')[0];
+    }
+    const colomboOffset = 5.5 * 60 * 60 * 1000;
+    const colomboTime = new Date(d.getTime() + colomboOffset);
+    return colomboTime.toISOString().split('T')[0];
+};
+
 const OrderManagement = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -138,7 +151,7 @@ const OrderManagement = () => {
 
     // New Order State
     const [newOrder, setNewOrder] = useState({
-        OR_DATE: new Date().toISOString().split('T')[0],
+        OR_DATE: getSriLankaDate(),
         OR_REFFERENCE: '',
         items: []
     });
@@ -203,15 +216,14 @@ const OrderManagement = () => {
                 if (existingItemsMap[pIdStr]) {
                     initial[pIdStr] = existingItemsMap[pIdStr];
                 } else {
-                    const mfgDate = new Date();
-                    mfgDate.setDate(mfgDate.getDate() + 1); // Today + 1
-                    const mfgDateStr = mfgDate.toISOString().split('T')[0];
+                    const nowSL = new Date(getSriLankaDate());
+                    const mfgDate = new Date(nowSL.getTime() + 24 * 60 * 60 * 1000);
+                    const mfgDateStr = getSriLankaDate(mfgDate);
 
                     let expDateStr = '';
                     if (p.P_ITEM_STORED_DAYS) {
-                        const expDate = new Date(mfgDate);
-                        expDate.setDate(expDate.getDate() + parseInt(p.P_ITEM_STORED_DAYS));
-                        expDateStr = expDate.toISOString().split('T')[0];
+                        const expDate = new Date(mfgDate.getTime() + parseInt(p.P_ITEM_STORED_DAYS) * 24 * 60 * 60 * 1000);
+                        expDateStr = getSriLankaDate(expDate);
                     }
 
                     initial[pIdStr] = {
@@ -505,7 +517,7 @@ const OrderManagement = () => {
             setIsAddModalOpen(false);
             setEditingOrder(null);
             setNewOrder({
-                OR_DATE: new Date().toISOString().split('T')[0],
+                OR_DATE: getSriLankaDate(),
                 OR_REFFERENCE: '',
                 items: []
             });
@@ -562,9 +574,41 @@ const OrderManagement = () => {
     };
 
     const handleApproveOrder = async (orderId) => {
-        if (!window.confirm('Approve this order? This will deduct raw materials from stock and update finished goods inventory.')) return;
         setIsProcessing(true);
         try {
+            // 1. Fetch order details to check raw material / bag requirements
+            const detailRes = await api.get(`/orders/${orderId}`);
+            const items = detailRes.data;
+
+            const selectedItems = items.map(item => ({
+                OD_PRODUCT_ID: item.OD_PRODUCT_ID,
+                OD_QTY: parseFloat(item.OD_QTY),
+                BAG_ISSUED: item.BAG_ISSUED,
+                BAG_RM_ID: item.BAG_RM_ID,
+                BAG_QTY: parseFloat(item.BAG_QTY || 0)
+            }));
+
+            // 2. Perform frontend stock shortage pre-check
+            const checkRes = await api.post('/orders/check-shortages', { items: selectedItems });
+            if (checkRes.data.hasShortage) {
+                setShortagesList({
+                    products: checkRes.data.productShortages || [],
+                    rawMaterials: checkRes.data.rawMaterialShortages || [],
+                    bags: checkRes.data.bagShortages || []
+                });
+                setShortageProductIds((checkRes.data.productShortages || []).map(p => p.id));
+                setShortageRecipeProductIds(checkRes.data.shortageRecipeProductIds || []);
+                setShortageBagProductIds(checkRes.data.shortageBagProductIds || []);
+                
+                // Open shortage warning modal
+                setShortageModalOpen(true);
+                showNotification('Warning: Cannot approve! Stock is not enough. Please review raw materials and bags shortages.', 'error');
+                return;
+            }
+
+            // 3. Confirm and approve order
+            if (!window.confirm('Approve this order? This will deduct raw materials from stock and update finished goods inventory.')) return;
+            
             await api.post(`/orders/${orderId}/approve`);
             showNotification('Order approved and inventory updated!', 'success');
             setViewingOrder(null);
@@ -1481,7 +1525,7 @@ const OrderManagement = () => {
                     onClick={() => {
                         setEditingOrder(null);
                         setNewOrder({
-                            OR_DATE: new Date().toISOString().split('T')[0],
+                            OR_DATE: getSriLankaDate(),
                             OR_REFFERENCE: '',
                             items: []
                         });

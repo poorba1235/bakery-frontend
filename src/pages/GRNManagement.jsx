@@ -91,7 +91,7 @@ const GRNManagement = () => {
     const [newGRN, setNewGRN] = useState({
         TH_SEQ_NO: '',
         TH_REFERENCE: '',
-        TH_DATE: new Date().toISOString().split('T')[0],
+        TH_DATE: formatDateForInput(new Date()),
         TH_SUPPLIER_ID: '',
         TH_TOTAL_COST_AMOUNT_LCY: 0,
         items: []
@@ -202,7 +202,7 @@ const GRNManagement = () => {
         }
 
         if (!isPackaging) {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = formatDateForInput(new Date());
             const mfgDateStr = TD_MANUFACTURE_DATE;
             const expDateStr = TD_EXP_DATE;
 
@@ -354,7 +354,7 @@ const GRNManagement = () => {
             setNewGRN({
                 TH_SEQ_NO: '',
                 TH_REFERENCE: '',
-                TH_DATE: new Date().toISOString().split('T')[0],
+                TH_DATE: formatDateForInput(new Date()),
                 TH_SUPPLIER_ID: '',
                 TH_TOTAL_COST_AMOUNT_LCY: 0,
                 items: []
@@ -528,7 +528,7 @@ const GRNManagement = () => {
                         setNewGRN({
                             TH_SEQ_NO: '',
                             TH_REFERENCE: '',
-                            TH_DATE: new Date().toISOString().split('T')[0],
+                            TH_DATE: formatDateForInput(new Date()),
                             TH_SUPPLIER_ID: '',
                             TH_TOTAL_COST_AMOUNT_LCY: 0,
                             items: []
@@ -778,7 +778,7 @@ const GRNManagement = () => {
                                             <input
                                                 type="date"
                                                 required
-                                                max={new Date().toISOString().split('T')[0]}
+                                                max={formatDateForInput(new Date())}
                                                 value={newGRN.TH_DATE}
                                                 onChange={(e) => setNewGRN({ ...newGRN, TH_DATE: e.target.value })}
                                                 className="w-full bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
@@ -919,7 +919,7 @@ const GRNManagement = () => {
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Manufacture Date</label>
                                                     <input
                                                         type="date"
-                                                        max={new Date().toISOString().split('T')[0]}
+                                                        max={formatDateForInput(new Date())}
                                                         value={newItem.TD_MANUFACTURE_DATE}
                                                         onChange={(e) => setNewItem({ ...newItem, TD_MANUFACTURE_DATE: e.target.value })}
                                                         className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50"

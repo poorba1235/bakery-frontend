@@ -27,6 +27,16 @@ import { slMobileRegex, slNicRegex } from '../utils/validation';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+const formatDateToLocalYYYYMMDD = (dateValue) => {
+    if (!dateValue) return '';
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const SalesRepManagement = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -130,7 +140,7 @@ const SalesRepManagement = () => {
         SR_EMAIL: '',
         SR_ADDRESS: '',
         SR_GENDER: 'Male',
-        SR_JOIN_DATE: new Date().toISOString().split('T')[0],
+        SR_JOIN_DATE: formatDateToLocalYYYYMMDD(new Date()),
         SR_DOB: '',
         SR_BASIC_SALARY: '',
         SR_COMMISSION_PERCENT: '',
@@ -151,7 +161,7 @@ const SalesRepManagement = () => {
     const [vehicleFormData, setVehicleFormData] = useState({
         SRV_SALES_REP_ID: '',
         SRV_VEHICLE_ID: '',
-        SRV_ASSIGN_DATE: new Date().toISOString().split('T')[0],
+        SRV_ASSIGN_DATE: formatDateToLocalYYYYMMDD(new Date()),
         SRV_REMARKS: ''
     });
 
@@ -262,7 +272,7 @@ const SalesRepManagement = () => {
             SR_EMAIL: '',
             SR_ADDRESS: '',
             SR_GENDER: 'Male',
-            SR_JOIN_DATE: new Date().toISOString().split('T')[0],
+            SR_JOIN_DATE: formatDateToLocalYYYYMMDD(new Date()),
             SR_DOB: '',
             SR_BASIC_SALARY: '',
             SR_COMMISSION_PERCENT: '',
@@ -363,7 +373,7 @@ const SalesRepManagement = () => {
             setVehicleFormData({
                 SRV_SALES_REP_ID: '',
                 SRV_VEHICLE_ID: '',
-                SRV_ASSIGN_DATE: new Date().toISOString().split('T')[0],
+                SRV_ASSIGN_DATE: formatDateToLocalYYYYMMDD(new Date()),
                 SRV_REMARKS: ''
             });
         } catch (error) {
@@ -800,11 +810,11 @@ const SalesRepManagement = () => {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date of Birth</label>
-                                        <input type="date" value={repFormData.SR_DOB ? new Date(repFormData.SR_DOB).toISOString().split('T')[0] : ''} onChange={(e) => setRepFormData({ ...repFormData, SR_DOB: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-4 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none" />
+                                        <input type="date" value={repFormData.SR_DOB ? formatDateToLocalYYYYMMDD(repFormData.SR_DOB) : ''} onChange={(e) => setRepFormData({ ...repFormData, SR_DOB: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-4 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Join Date</label>
-                                        <input type="date" value={repFormData.SR_JOIN_DATE ? new Date(repFormData.SR_JOIN_DATE).toISOString().split('T')[0] : ''} onChange={(e) => setRepFormData({ ...repFormData, SR_JOIN_DATE: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-4 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none" />
+                                        <input type="date" value={repFormData.SR_JOIN_DATE ? formatDateToLocalYYYYMMDD(repFormData.SR_JOIN_DATE) : ''} onChange={(e) => setRepFormData({ ...repFormData, SR_JOIN_DATE: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-4 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Basic Salary</label>
