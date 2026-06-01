@@ -74,9 +74,7 @@ const SupplierManagement = () => {
         CS_TELEPHONE_NO: Yup.string()
             .test('is-sl-phone', 'Please enter a valid telephone number', (value) => !value || slMobileRegex.test(value))
             .nullable(),
-        CS_FAX_NO: Yup.string()
-            .test('is-sl-fax', 'Please enter a valid fax number', (value) => !value || slMobileRegex.test(value))
-            .nullable(),
+        CS_FAX_NO: Yup.string().nullable(),
     });
 
     const validateForm = async (data) => {
