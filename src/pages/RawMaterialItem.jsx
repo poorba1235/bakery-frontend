@@ -359,11 +359,9 @@ const RawMaterialItem = () => {
                                             value={editingMaterial ? (editingMaterial.RM_NAME_SINHALA || '') : newMaterial.RM_NAME_SINHALA}
                                             onChange={(e) => {
                                                 const val = e.target.value;
-                                                // Allow Sinhala characters, spaces, and joiners (ZWJ/ZWNJ)
-                                                const sinhalaRegex = /^[\u0D80-\u0DFF\s\u200C\u200D]*$/;
-                                                if (sinhalaRegex.test(val)) {
-                                                    editingMaterial ? setEditingMaterial({ ...editingMaterial, RM_NAME_SINHALA: val }) : setNewMaterial({ ...newMaterial, RM_NAME_SINHALA: val });
-                                                }
+                                                editingMaterial 
+                                                    ? setEditingMaterial({ ...editingMaterial, RM_NAME_SINHALA: val }) 
+                                                    : setNewMaterial({ ...newMaterial, RM_NAME_SINHALA: val });
                                             }}
                                             className="w-full bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-xl py-3 px-4 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                                             placeholder="සිංහල නම..."

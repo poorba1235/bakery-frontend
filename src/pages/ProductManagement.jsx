@@ -597,11 +597,7 @@ const ProductManagement = () => {
                                                     maxLength={100}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
-                                                        // Allow Sinhala characters, spaces, and joiners (ZWJ/ZWNJ)
-                                                        const sinhalaRegex = /^[\u0D80-\u0DFF\s\u200C\u200D]*$/;
-                                                        if (sinhalaRegex.test(val)) {
-                                                            setFormData({ ...formData, P_NAME_SINAHAL: val });
-                                                        }
+                                                        setFormData({ ...formData, P_NAME_SINAHAL: val });
                                                     }}
                                                     className="w-full bg-blue-50/30 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold"
                                                     placeholder="සිංහල නම..."
