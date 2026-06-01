@@ -9,7 +9,6 @@ import {
     Loader2,
     Package,
     Plus,
-    Printer,
     Save,
     Search,
     ShieldCheck,

@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import JsBarcode from 'jsbarcode';
 import {
     ArrowRight,
     Calculator,
@@ -25,10 +24,10 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
+import ProductLabelPrintContainer from '../components/ProductLabelPrintContainer';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
-import ProductLabelPrintContainer from '../components/ProductLabelPrintContainer';
 
 
 const getSriLankaDate = (dateVal) => {
@@ -233,7 +232,7 @@ const OrderManagement = () => {
                         OD_UNIT_SALE_PRICE: (p.last_sale_price || p.P_SALE_PRICE || '').toString(),
                         OD_UNIT_WHOLE_SALE_PRICE: (p.last_wholesale_price || p.P_WHOLE_SALE_PRICE || '').toString(),
                         OD_UNIT_COST_PRICE: (p.P_COST_PRICE || '').toString(),
-                        LOCATIONID: (globalLocation || locations[0]?.L_ID || '').toString(),
+                        LOCATIONID: (locations[0]?.L_ID || '').toString(),
                         BAG_ISSUED: 0,
                         BAG_RM_ID: '',
                         BAG_SIZE: '',
@@ -251,8 +250,9 @@ const OrderManagement = () => {
             setModalItems({});
             setModalSearchTerm('');
             setModalPage(1);
+            setGlobalLocation('');
         }
-    }, [isAddModalOpen, editingOrder, products, locations, globalLocation]);
+    }, [isAddModalOpen, editingOrder, products, locations]);
 
     // New Item State
     const [newItem, setNewItem] = useState({
@@ -436,7 +436,8 @@ const OrderManagement = () => {
                 }
 
                 // Validate Bags
-                if (row.BAG_ISSUED === 1 && !row.BAG_RM_ID) {
+                const bagIssued = parseInt(product?.P_ISSUE_BAG_status) === 1 ? row.BAG_ISSUED : 0;
+                if (bagIssued === 1 && !row.BAG_RM_ID) {
                     errors.push(`Please select a bag for ${product?.P_NAME}`);
                 }
 
@@ -449,10 +450,10 @@ const OrderManagement = () => {
                     OD_UNIT_WHOLE_SALE_PRICE: wholesalePrice,
                     OD_UNIT_COST_PRICE: parseFloat(row.OD_UNIT_COST_PRICE || 0),
                     LOCATIONID: parseInt(globalLocation),
-                    BAG_ISSUED: row.BAG_ISSUED,
-                    BAG_RM_ID: row.BAG_RM_ID ? parseInt(row.BAG_RM_ID) : null,
-                    BAG_SIZE: row.BAG_SIZE || '',
-                    BAG_QTY: row.BAG_ISSUED === 1 ? parseFloat(row.BAG_QTY || 1) : 0,
+                    BAG_ISSUED: bagIssued,
+                    BAG_RM_ID: bagIssued === 1 && row.BAG_RM_ID ? parseInt(row.BAG_RM_ID) : null,
+                    BAG_SIZE: bagIssued === 1 ? (row.BAG_SIZE || '') : '',
+                    BAG_QTY: bagIssued === 1 ? parseFloat(row.BAG_QTY || 1) : 0,
                     OD_EXP_DATE: row.OD_EXP_DATE || null,
                     OD_MFG_DATE: row.OD_MFG_DATE || null,
                     OD_UNIT_SELLING_PRICE: sellingPrice,
@@ -599,7 +600,7 @@ const OrderManagement = () => {
                 setShortageProductIds((checkRes.data.productShortages || []).map(p => p.id));
                 setShortageRecipeProductIds(checkRes.data.shortageRecipeProductIds || []);
                 setShortageBagProductIds(checkRes.data.shortageBagProductIds || []);
-                
+
                 // Open shortage warning modal
                 setShortageModalOpen(true);
                 showNotification('Warning: Cannot approve! Stock is not enough. Please review raw materials and bags shortages.', 'error');
@@ -608,7 +609,7 @@ const OrderManagement = () => {
 
             // 3. Confirm and approve order
             if (!window.confirm('Approve this order? This will deduct raw materials from stock and update finished goods inventory.')) return;
-            
+
             await api.post(`/orders/${orderId}/approve`);
             showNotification('Order approved and inventory updated!', 'success');
             setViewingOrder(null);
@@ -686,6 +687,15 @@ const OrderManagement = () => {
     };
 
     if (isAddModalOpen) {
+        const hasAnySelectedShortage = Object.keys(modalItems).some(pId => {
+            const row = modalItems[pId];
+            if (row && row.checked) {
+                const pIdInt = parseInt(pId);
+                return shortageProductIds.includes(pIdInt) || shortageRecipeProductIds.includes(pIdInt) || shortageBagProductIds.includes(pIdInt);
+            }
+            return false;
+        });
+
         return (
             <>
                 <div className="p-4 md:p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -840,11 +850,17 @@ const OrderManagement = () => {
                                                                                 type="checkbox"
                                                                                 checked={isChecked}
                                                                                 onChange={(e) => {
+                                                                                    const checked = e.target.checked;
+                                                                                    if (!checked) {
+                                                                                        setShortageProductIds(prev => prev.filter(id => id !== p.P_ID));
+                                                                                        setShortageRecipeProductIds(prev => prev.filter(id => id !== p.P_ID));
+                                                                                        setShortageBagProductIds(prev => prev.filter(id => id !== p.P_ID));
+                                                                                    }
                                                                                     setModalItems(prev => ({
                                                                                         ...prev,
                                                                                         [pId]: {
                                                                                             ...prev[pId],
-                                                                                            checked: e.target.checked
+                                                                                            checked: checked
                                                                                         }
                                                                                     }));
                                                                                 }}
@@ -859,7 +875,7 @@ const OrderManagement = () => {
                                                                                 <span className="text-xs font-mono text-slate-400">{p.P_CODE} ({p.P_UNIT || 'Unit'})</span>
 
                                                                                 {shortageProductIds.includes(p.P_ID) && (
-                                                                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white flex items-center gap-1">
+                                                                                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-500 text-white flex items-center gap-1 shadow-sm uppercase">
                                                                                         ⚠️ Out of Stock
                                                                                     </span>
                                                                                 )}
@@ -873,6 +889,12 @@ const OrderManagement = () => {
                                                                                         Raw Material Short (View details)
                                                                                     </button>
                                                                                 )}
+                                                                                {shortageBagProductIds.includes(p.P_ID) && (
+                                                                                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-rose-500 text-white flex items-center gap-1 shadow-sm uppercase">
+                                                                                        ⚠️ Bag Shortage
+                                                                                    </span>
+                                                                                )}
+
                                                                             </div>
                                                                         </td>
 
@@ -888,6 +910,9 @@ const OrderManagement = () => {
                                                                                     value={row.OD_QTY || ''}
                                                                                     onChange={(e) => {
                                                                                         const val = e.target.value;
+                                                                                        setShortageProductIds(prev => prev.filter(id => id !== p.P_ID));
+                                                                                        setShortageRecipeProductIds(prev => prev.filter(id => id !== p.P_ID));
+                                                                                        setShortageBagProductIds(prev => prev.filter(id => id !== p.P_ID));
                                                                                         setModalItems(prev => {
                                                                                             const updatedRow = { ...prev[pId], OD_QTY: val };
                                                                                             if (updatedRow.BAG_ISSUED === 1) {
@@ -1059,31 +1084,35 @@ const OrderManagement = () => {
 
                                                                         {/* Bag Issued */}
                                                                         <td className="px-6 py-4.5">
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    disabled={!isChecked}
-                                                                                    checked={row.BAG_ISSUED === 1}
-                                                                                    onChange={(e) => {
-                                                                                        const checked = e.target.checked;
-                                                                                        setModalItems(prev => ({
-                                                                                            ...prev,
-                                                                                            [pId]: {
-                                                                                                ...prev[pId],
-                                                                                                BAG_ISSUED: checked ? 1 : 0,
-                                                                                                BAG_QTY: checked ? (prev[pId]?.OD_QTY || '1') : '1'
-                                                                                            }
-                                                                                        }));
-                                                                                    }}
-                                                                                    className={`w-5 h-5 accent-indigo-600 rounded cursor-pointer ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                                />
-                                                                                <span className="text-xs font-bold text-slate-500 uppercase">Yes</span>
-                                                                            </div>
+                                                                            {parseInt(p.P_ISSUE_BAG_status) === 1 ? (
+                                                                                <div className="flex items-center space-x-2">
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        disabled={!isChecked}
+                                                                                        checked={row.BAG_ISSUED === 1}
+                                                                                        onChange={(e) => {
+                                                                                            const checked = e.target.checked;
+                                                                                            setModalItems(prev => ({
+                                                                                                ...prev,
+                                                                                                [pId]: {
+                                                                                                    ...prev[pId],
+                                                                                                    BAG_ISSUED: checked ? 1 : 0,
+                                                                                                    BAG_QTY: checked ? (prev[pId]?.OD_QTY || '1') : '1'
+                                                                                                }
+                                                                                            }));
+                                                                                        }}
+                                                                                        className={`w-5 h-5 accent-indigo-600 rounded cursor-pointer ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                    />
+                                                                                    <span className="text-xs font-bold text-slate-500 uppercase">Yes</span>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">N/A</span>
+                                                                            )}
                                                                         </td>
 
                                                                         {/* Bag Details */}
                                                                         <td className="px-6 py-4.5">
-                                                                            {row.BAG_ISSUED === 1 && isChecked ? (
+                                                                            {parseInt(p.P_ISSUE_BAG_status) === 1 && row.BAG_ISSUED === 1 && isChecked ? (
                                                                                 <div className="flex flex-col gap-2 w-36">
                                                                                     <select
                                                                                         value={row.BAG_RM_ID || ''}
@@ -1228,9 +1257,11 @@ const OrderManagement = () => {
                             </div>
 
                             {/* Footer Actions */}
+
+
                             <div className="flex gap-4 pt-6 mt-8 pb-4 border-t border-slate-100 dark:border-slate-800">
                                 <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingOrder(null); }} className="flex-1 px-8 py-4 bg-slate-100 dark:bg-[#334155] text-slate-700 dark:text-white font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-[#404e63] transition-all">Cancel</button>
-                                <button type="submit" disabled={isSaving} className="flex-[2] px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl flex items-center justify-center space-x-2 shadow-xl shadow-blue-600/20 active:scale-95 transition-all">
+                                <button type="submit" disabled={isSaving || hasAnySelectedShortage} className={`flex-[2] px-8 py-4 font-bold rounded-2xl flex items-center justify-center space-x-2 shadow-xl active:scale-95 transition-all ${hasAnySelectedShortage ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-none active:scale-100' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'}`}>
                                     {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
                                     <span>{isSaving ? 'Saving Order...' : (editingOrder ? 'Update Order' : 'Submit Pending Order')}</span>
                                 </button>
@@ -2425,12 +2456,24 @@ const OrderManagement = () => {
                                                                                             <div className="flex flex-col gap-1.5 py-1">
                                                                                                 {ing.batches && ing.batches.length > 0 ? (
                                                                                                     ing.batches.map((b, bIdx) => (
-                                                                                                        <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
-                                                                                                            <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(3)} @ LKR {Number(b.unitPrice).toFixed(2)}
-                                                                                                        </span>
+                                                                                                        b.batchNo === 'Shortage' ? (
+                                                                                                            <span key={bIdx} className="inline-flex items-center text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 gap-1.5">
+                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {Number(b.qtyTaken).toFixed(3)} @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                            </span>
+                                                                                                        ) : (
+                                                                                                            <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
+                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(3)} @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                            </span>
+                                                                                                        )
                                                                                                     ))
                                                                                                 ) : (
-                                                                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded">⚠️ Shortage - No Batches Available</span>
+                                                                                                    productionSheetData?.order?.OR_STATUS >= 2 ? (
+                                                                                                        <span className="inline-flex items-center text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wider gap-1">
+                                                                                                            ✓ Issued & Deducted (Approved)
+                                                                                                        </span>
+                                                                                                    ) : (
+                                                                                                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded">⚠️ Shortage - No Batches Available</span>
+                                                                                                    )
                                                                                                 )}
                                                                                             </div>
                                                                                         </td>
@@ -2477,12 +2520,24 @@ const OrderManagement = () => {
                                                                                             <div className="flex flex-col gap-1.5 py-1">
                                                                                                 {bag.batches && bag.batches.length > 0 ? (
                                                                                                     bag.batches.map((b, bIdx) => (
-                                                                                                        <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
-                                                                                                            <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(0)} Pcs @ LKR {Number(b.unitPrice).toFixed(2)}
-                                                                                                        </span>
+                                                                                                        b.batchNo === 'Shortage' ? (
+                                                                                                            <span key={bIdx} className="inline-flex items-center text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 gap-1.5">
+                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {Number(b.qtyTaken).toFixed(0)} Pcs @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                            </span>
+                                                                                                        ) : (
+                                                                                                            <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
+                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(0)} Pcs @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                            </span>
+                                                                                                        )
                                                                                                     ))
                                                                                                 ) : (
-                                                                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded">⚠️ Bag Shortage - No Batches Available</span>
+                                                                                                    bag.isIssued ? (
+                                                                                                        <span className="inline-flex items-center text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wider gap-1">
+                                                                                                            ✓ Issued & Deducted (Approved)
+                                                                                                        </span>
+                                                                                                    ) : (
+                                                                                                        <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-0.5 rounded">⚠️ Bag Shortage - No Batches Available</span>
+                                                                                                    )
                                                                                                 )}
                                                                                             </div>
                                                                                         </td>
