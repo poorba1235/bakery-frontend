@@ -270,7 +270,7 @@ const ProductManagement = () => {
                 showNotification('Product deactivated', 'success');
                 fetchInitialData();
             } catch (error) {
-                showNotification('Error deleting product', 'error');
+                showNotification(error.response?.data?.message || 'Error deleting product', 'error');
             } finally {
                 setDeletingId(null);
             }

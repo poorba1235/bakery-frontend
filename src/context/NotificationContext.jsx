@@ -15,14 +15,16 @@ export const useNotification = () => {
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
 
-    const showNotification = useCallback((message, type = 'info', duration = 3000) => {
+    const showNotification = useCallback((message, type = 'info', duration) => {
         const id = Math.random().toString(36).substring(2, 9);
         setNotifications((prev) => [...prev, { id, message, type }]);
 
-        if (duration) {
+        const hideDuration = duration || (type === 'error' ? 10000 : 3000);
+
+        if (hideDuration) {
             setTimeout(() => {
                 removeNotification(id);
-            }, duration);
+            }, hideDuration);
         }
     }, []);
 

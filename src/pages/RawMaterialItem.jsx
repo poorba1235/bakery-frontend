@@ -139,7 +139,7 @@ const RawMaterialItem = () => {
             await fetchData();
             showNotification('Raw material deactivated', 'success');
         } catch (error) {
-            showNotification('Failed to deactivate raw material', 'error');
+            showNotification(error.response?.data?.message || 'Failed to deactivate raw material', 'error');
         } finally {
             setDeletingId(null);
         }

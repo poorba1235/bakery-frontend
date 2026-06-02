@@ -229,7 +229,7 @@ const RecipeManagement = () => {
         if (!editingRecipe) {
             const exists = recipes.some(r => String(r.RECH_PRODUCT_ID) === String(formData.RECH_PRODUCT_ID));
             if (exists) {
-                showNotification('A recipe already exists for this product. Please edit the existing one.', 'error');
+                showNotification('මෙම නිෂ්පාදනය සඳහා දැනටමත් වට්ටෝරුවක් පවතී. කරුණාකර පවතින එක සංස්කරණය කරන්න.', 'error');
                 return;
             }
         }

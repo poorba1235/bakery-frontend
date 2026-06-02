@@ -99,7 +99,7 @@ const ProductCategory = () => {
             await fetchData();
             showNotification('Category deactivated', 'success');
         } catch (error) {
-            showNotification('Failed to deactivate category', 'error');
+            showNotification(error.response?.data?.message || 'Failed to deactivate category', 'error');
         } finally {
             setDeletingId(null);
         }
@@ -149,7 +149,7 @@ const ProductCategory = () => {
             await fetchData();
             showNotification('Sub Category deactivated', 'success');
         } catch (error) {
-            showNotification('Failed to deactivate sub-category', 'error');
+            showNotification(error.response?.data?.message || 'Failed to deactivate sub-category', 'error');
         } finally {
             setDeletingId(null);
         }

@@ -291,7 +291,7 @@ const OrderManagement = () => {
         try {
             const [orderRes, prodRes, locRes, rmRes] = await Promise.all([
                 api.get('/orders'),
-                api.get('/product/items'),
+                api.get('/product/order-items'),
                 api.get('/warehouse/locations'),
                 api.get('/raw-material')
             ]);

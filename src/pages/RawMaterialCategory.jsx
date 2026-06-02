@@ -82,7 +82,7 @@ const RawMaterialCategory = () => {
             await fetchCategories();
             showNotification('Category deactivated successfully', 'success');
         } catch (error) {
-            showNotification('Failed to deactivate category', 'error');
+            showNotification(error.response?.data?.message || 'Failed to deactivate category', 'error');
         } finally {
             setDeletingId(null);
         }
