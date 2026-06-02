@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Loader2, Lock, LogIn, User } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, User } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 
@@ -44,10 +44,8 @@ const LoginPage = () => {
                 className="max-w-md w-full bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl overflow-hidden border border-slate-300 dark:border-[#334155]"
             >
                 <div className="p-8">
-                    <div className="flex justify-center mb-8">
-                        <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <LogIn className="w-8 h-8 text-slate-800 dark:text-white" />
-                        </div>
+                    <div className="flex justify-center mb-2">
+                        <img src='/logo.png' alt="Logo" className="h-40 w-90 object-contain" />
                     </div>
 
                     <h2 className="text-3xl font-bold text-center text-slate-800 dark:text-white mb-2">Welcome Back</h2>
@@ -114,7 +112,7 @@ const LoginPage = () => {
                             )}
                         </button>
                     </form>
-{/* 
+                    {/* 
                     <div className="mt-8 text-center">
                         <p className="text-slate-600 dark:text-[#94a3b8]">
                             Don't have an account?{' '}

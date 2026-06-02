@@ -1,32 +1,29 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-    Activity,
     Box,
+    ChefHat,
     ChevronDown,
     ChevronRight,
     ClipboardList,
     Database,
     FileText,
+    FlaskConical,
     Globe,
-    Home,
     Layers,
     LayoutDashboard,
     LogOut,
-    Menu,
-    Package,
-    Settings,
-    ShoppingCart,
-    ShoppingBag,
-    Users,
-    X,
-    FlaskConical,
-    Warehouse,
     MapPin,
+    Package,
     Receipt,
-    ChefHat,
-    Truck
+    Settings,
+    ShoppingBag,
+    ShoppingCart,
+    Truck,
+    Users,
+    Warehouse,
+    X
 } from 'lucide-react';
-import React, { useState,useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,7 +35,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     useEffect(() => {
         // Automatically expand the menu section containing the active path
-        const activeMenu = menuItems.find(item => 
+        const activeMenu = menuItems.find(item =>
             item.subItems?.some(sub => sub.path === location.pathname)
         );
         if (activeMenu && !expandedMenus.includes(activeMenu.name)) {
@@ -52,9 +49,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             icon: LayoutDashboard,
             path: '/',
         },
-       
-       
-       
+
+
+
         {
             name: 'Product',
             icon: Box,
@@ -144,8 +141,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     });
 
     const toggleMenu = (name) => {
-        setExpandedMenus(prev => 
-            prev.includes(name) 
+        setExpandedMenus(prev =>
+            prev.includes(name)
                 ? prev.filter(m => m !== name)
                 : [...prev, name]
         );
@@ -169,24 +166,24 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 onClick={() => setIsMobileOpen(true)}
                 className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-[#1e293b] rounded-lg shadow-lg border border-slate-200 dark:border-[#334155]"
             >
-                <Menu className="w-6 h-6 text-slate-600 dark:text-white" />
+                <img src="/logo.png" alt="Logo" className="h-10 w-10" />
             </button>
 
             {/* Logout Confirmation Modal */}
             <AnimatePresence>
                 {showLogoutConfirm && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0 }} 
-                            animate={{ opacity: 1 }} 
-                            exit={{ opacity: 0 }} 
-                            onClick={() => setShowLogoutConfirm(false)} 
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowLogoutConfirm(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         />
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }} 
-                            animate={{ scale: 1, opacity: 1 }} 
-                            exit={{ scale: 0.95, opacity: 0 }} 
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
                             className="relative w-full max-w-sm bg-white dark:bg-[#1e293b] rounded-[2rem] border border-slate-300 dark:border-[#334155] shadow-2xl p-8 text-center"
                         >
                             <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -195,13 +192,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Confirm Logout</h3>
                             <p className="text-slate-600 dark:text-[#94a3b8] mb-8">Are you sure you want to log out of your account?</p>
                             <div className="flex gap-3">
-                                <button 
+                                <button
                                     onClick={() => setShowLogoutConfirm(false)}
                                     className="flex-1 py-3 bg-slate-100 dark:bg-[#334155] text-slate-700 dark:text-white font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-[#404e63] transition-all"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={confirmLogout}
                                     className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all"
                                 >
@@ -237,10 +234,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 dark:border-[#1e293b]">
                     {(!isCollapsed || isMobileOpen) && (
                         <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
-                                <Package className="text-white w-6 h-6" />
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center ">
+                                <img src="/logo.png" alt="Logo" className="h-10 w-10" />
                             </div>
-                            <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-white">Indika<span className="text-blue-600">Bakery</span></span>
+                            <span className="font-bold text-xl tracking-tight text-slate-800 dark:text-white">Indika<span className="text-blue-600">Bakers</span></span>
                         </div>
                     )}
                     <button
@@ -265,11 +262,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                 <div>
                                     <button
                                         onClick={() => toggleMenu(item.name)}
-                                        className={`w-full flex items-center px-4 py-3 rounded-xl transition-all group ${
-                                            expandedMenus.includes(item.name) 
-                                                ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold' 
+                                        className={`w-full flex items-center px-4 py-3 rounded-xl transition-all group ${expandedMenus.includes(item.name)
+                                                ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold'
                                                 : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
-                                        }`}
+                                            }`}
                                     >
                                         <item.icon className="shrink-0 w-5 h-5" />
                                         {(!isCollapsed || isMobileOpen) && (
@@ -294,11 +290,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                                             key={sub.name}
                                                             to={sub.path}
                                                             onClick={() => setIsMobileOpen(false)}
-                                                            className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                                                                location.pathname === sub.path
+                                                            className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${location.pathname === sub.path
                                                                     ? 'text-blue-600 bg-blue-50 dark:bg-blue-600/10 font-bold'
                                                                     : 'text-slate-500 dark:text-[#64748b] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-600/5'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             <sub.icon className="w-4 h-4 mr-3" />
                                                             {sub.name}
@@ -312,11 +307,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                 <Link
                                     to={item.path}
                                     onClick={() => setIsMobileOpen(false)}
-                                    className={`flex items-center px-4 py-3 rounded-xl transition-all group ${
-                                        location.pathname === item.path
+                                    className={`flex items-center px-4 py-3 rounded-xl transition-all group ${location.pathname === item.path
                                             ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold shadow-sm shadow-blue-600/5'
                                             : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
-                                    }`}
+                                        }`}
                                 >
                                     <item.icon className="shrink-0 w-5 h-5" />
                                     {(!isCollapsed || isMobileOpen) && (

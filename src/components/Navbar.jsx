@@ -19,6 +19,7 @@ const Navbar = () => {
                 <div className="flex justify-between h-16">
                     <div className="flex space-x-8">
                         <div className="flex items-center">
+                            <img src='/logo.png' alt="Logo" className="h-10 w-10" />
                             <span className="text-blue-500 font-bold text-xl tracking-tight">INDIKA BAKERY</span>
                         </div>
                         <div className="hidden md:flex space-x-4">
