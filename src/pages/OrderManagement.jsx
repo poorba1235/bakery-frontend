@@ -184,6 +184,10 @@ const OrderManagement = () => {
 
     useEffect(() => {
         if (isAddModalOpen) {
+            const defaultLoc = locations.find(l => l.L_NAME?.toLowerCase().includes('product main store')) || locations[0];
+            const defaultLocId = (defaultLoc?.L_ID || '').toString();
+            setGlobalLocation(defaultLocId);
+
             const initial = {};
             const existingItemsMap = {};
 
@@ -196,7 +200,7 @@ const OrderManagement = () => {
                         OD_UNIT_SALE_PRICE: item.OD_UNIT_SALE_PRICE.toString(),
                         OD_UNIT_WHOLE_SALE_PRICE: (item.OD_UNIT_WHOLE_SALE_PRICE || 0).toString(),
                         OD_UNIT_COST_PRICE: (item.OD_UNIT_COST_PRICE || 0).toString(),
-                        LOCATIONID: (item.LOCATIONID || locations[0]?.L_ID || '').toString(),
+                        LOCATIONID: (item.LOCATIONID || defaultLocId).toString(),
                         BAG_ISSUED: item.BAG_ISSUED || 0,
                         BAG_RM_ID: item.BAG_RM_ID?.toString() || '',
                         BAG_SIZE: item.BAG_SIZE || '',
@@ -232,7 +236,7 @@ const OrderManagement = () => {
                         OD_UNIT_SALE_PRICE: (p.last_sale_price || p.P_SALE_PRICE || '').toString(),
                         OD_UNIT_WHOLE_SALE_PRICE: (p.last_wholesale_price || p.P_WHOLE_SALE_PRICE || '').toString(),
                         OD_UNIT_COST_PRICE: (p.P_COST_PRICE || '').toString(),
-                        LOCATIONID: (locations[0]?.L_ID || '').toString(),
+                        LOCATIONID: defaultLocId,
                         BAG_ISSUED: 0,
                         BAG_RM_ID: '',
                         BAG_SIZE: '',
@@ -297,7 +301,8 @@ const OrderManagement = () => {
             setRawMaterials(rmRes.data);
 
             if (locRes.data.length > 0) {
-                setNewItem(prev => ({ ...prev, LOCATIONID: locRes.data[0].L_ID }));
+                const prodMainStore = locRes.data.find(l => l.L_NAME?.toLowerCase().includes('product main store')) || locRes.data[0];
+                setNewItem(prev => ({ ...prev, LOCATIONID: prodMainStore.L_ID }));
             }
         } catch (error) {
             showNotification('Failed to load order data', 'error');
@@ -828,8 +833,8 @@ const OrderManagement = () => {
                                                                 </th>
                                                                 <th className="px-6 py-5 text-sm font-black">Product</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-24">Qty</th>
-                                                                <th className="px-6 py-5 text-sm font-black w-48">Base Tiers (LKR)</th>
-                                                                <th className="px-6 py-5 text-sm font-black w-40">Order Price (LKR)</th>
+                                                                <th className="px-6 py-5 text-sm font-black w-60">Base Tiers (LKR)</th>
+                                                                <th className="px-6 py-5 text-sm font-black w-52">Order Price (LKR)</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-44">Dates (Mfg & Exp)</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-24">Bag?</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-44">Bag Details</th>
@@ -933,9 +938,9 @@ const OrderManagement = () => {
 
                                                                         {/* Base Tiers (LKR) */}
                                                                         <td className="px-6 py-4.5">
-                                                                            <div className="flex flex-col gap-2 w-44">
+                                                                            <div className="flex flex-col gap-2 w-56">
                                                                                 <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-14">Selling</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Selling</span>
                                                                                     <input
                                                                                         type="number"
                                                                                         disabled={!isChecked}
@@ -950,11 +955,11 @@ const OrderManagement = () => {
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SELLING_PRICE: val }
                                                                                             }));
                                                                                         }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-24 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                     />
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-14">Shop</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Shop</span>
                                                                                     <input
                                                                                         type="number"
                                                                                         disabled={!isChecked}
@@ -969,11 +974,11 @@ const OrderManagement = () => {
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SHOP_PRICE: val }
                                                                                             }));
                                                                                         }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-24 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                     />
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-14">Limit</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Limit</span>
                                                                                     <input
                                                                                         type="number"
                                                                                         disabled={!isChecked}
@@ -988,7 +993,7 @@ const OrderManagement = () => {
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_LIMIT_PRICE: val }
                                                                                             }));
                                                                                         }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-24 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                     />
                                                                                 </div>
                                                                             </div>
@@ -996,9 +1001,9 @@ const OrderManagement = () => {
 
                                                                         {/* Order Price (LKR) */}
                                                                         <td className="px-6 py-4.5">
-                                                                            <div className="flex flex-col gap-2 w-32">
+                                                                            <div className="flex flex-col gap-2 w-48">
                                                                                 <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-8">R.Sale</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-14">R.Sale</span>
                                                                                     <input
                                                                                         type="number"
                                                                                         disabled={!isChecked}
@@ -1013,11 +1018,11 @@ const OrderManagement = () => {
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SALE_PRICE: val }
                                                                                             }));
                                                                                         }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-20 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-28 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                     />
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-8">W.Sale</span>
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-14">W.Sale</span>
                                                                                     <input
                                                                                         type="number"
                                                                                         disabled={!isChecked}
@@ -1032,7 +1037,7 @@ const OrderManagement = () => {
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_WHOLE_SALE_PRICE: val }
                                                                                             }));
                                                                                         }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-20 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-28 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                     />
                                                                                 </div>
                                                                             </div>

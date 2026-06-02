@@ -57,6 +57,11 @@ const GRNManagement = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [rawMaterials, setRawMaterials] = useState([]);
     const [locations, setLocations] = useState([]);
+
+    const getDefaultLocationId = () => {
+        const found = locations.find(l => l.L_NAME?.toLowerCase().includes('raw material main store'));
+        return found ? found.L_ID : (locations[0]?.L_ID || '');
+    };
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -135,7 +140,8 @@ const GRNManagement = () => {
 
             // Set default location if available
             if (locRes.data.length > 0) {
-                setNewItem(prev => ({ ...prev, L_ID: locRes.data[0].L_ID }));
+                const defaultLoc = locRes.data.find(l => l.L_NAME?.toLowerCase().includes('raw material main store')) || locRes.data[0];
+                setNewItem(prev => ({ ...prev, L_ID: defaultLoc.L_ID }));
             }
 
         } catch (error) {
@@ -271,7 +277,7 @@ const GRNManagement = () => {
             TD_COST_PRICE_LCY: '',
             TD_EXP_DATE: '',
             TD_MANUFACTURE_DATE: '',
-            L_ID: locations[0]?.L_ID || ''
+            L_ID: getDefaultLocationId()
         });
         setEnterAsPackets(false);
         setPacketCount('');
@@ -308,7 +314,7 @@ const GRNManagement = () => {
                 TD_COST_PRICE_LCY: '',
                 TD_EXP_DATE: '',
                 TD_MANUFACTURE_DATE: '',
-                L_ID: locations[0]?.L_ID || ''
+                L_ID: getDefaultLocationId()
             });
         }
     };
@@ -395,7 +401,7 @@ const GRNManagement = () => {
                 TD_COST_PRICE_LCY: '',
                 TD_EXP_DATE: '',
                 TD_MANUFACTURE_DATE: '',
-                L_ID: locations[0]?.L_ID || ''
+                L_ID: getDefaultLocationId()
             });
             setEditingGRNId(grn.TH_ID);
             setEditingItemId(null);
@@ -538,7 +544,7 @@ const GRNManagement = () => {
                             TD_COST_PRICE_LCY: '',
                             TD_EXP_DATE: '',
                             TD_MANUFACTURE_DATE: '',
-                            L_ID: locations[0]?.L_ID || ''
+                            L_ID: getDefaultLocationId()
                         });
                         setEditingGRNId(null);
                         setEditingItemId(null);
@@ -941,7 +947,7 @@ const GRNManagement = () => {
                                                                 TD_COST_PRICE_LCY: '',
                                                                 TD_EXP_DATE: '',
                                                                 TD_MANUFACTURE_DATE: '',
-                                                                L_ID: locations[0]?.L_ID || ''
+                                                                L_ID: getDefaultLocationId()
                                                             });
                                                         }} className="px-6 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all">Cancel</button>
                                                     )}
