@@ -43,6 +43,51 @@ const getSriLankaDate = (dateVal) => {
     return colomboTime.toISOString().split('T')[0];
 };
 
+const formatQuantityAndUnit = (qty, unit) => {
+    let numQty = Number(qty);
+    let lowerUnit = (unit || '').toLowerCase();
+
+    if (lowerUnit === 'kg') {
+        if (numQty < 1 && numQty >= 0.001) {
+            return `${parseFloat((numQty * 1000).toFixed(3))} g`;
+        } else if (numQty < 0.001 && numQty > 0) {
+            return `${parseFloat((numQty * 1000000).toFixed(3))} mg`;
+        }
+    }
+    
+    if (lowerUnit === 'g') {
+        if (numQty >= 1000) {
+            return `${parseFloat((numQty / 1000).toFixed(3))} kg`;
+        } else if (numQty < 1 && numQty > 0) {
+            return `${parseFloat((numQty * 1000).toFixed(3))} mg`;
+        }
+    }
+    
+    if (lowerUnit === 'mg') {
+        if (numQty >= 1000000) {
+            return `${parseFloat((numQty / 1000000).toFixed(3))} kg`;
+        } else if (numQty >= 1000) {
+            return `${parseFloat((numQty / 1000).toFixed(3))} g`;
+        }
+    }
+
+    if (lowerUnit === 'l') {
+        if (numQty < 1 && numQty >= 0.001) {
+            return `${parseFloat((numQty * 1000).toFixed(3))} ml`;
+        }
+    }
+    
+    if (lowerUnit === 'ml') {
+        if (numQty >= 1000) {
+            return `${parseFloat((numQty / 1000).toFixed(3))} l`;
+        }
+    }
+    
+    const isDecimalUnit = ['kg', 'l', 'g', 'ml', 'mg'].includes(lowerUnit);
+    const formattedQty = isDecimalUnit ? parseFloat(numQty.toFixed(3)) : parseFloat(numQty.toFixed(0));
+    return `${formattedQty} ${unit || ''}`.trim();
+};
+
 const OrderManagement = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
@@ -2456,18 +2501,18 @@ const OrderManagement = () => {
                                                                                             {ing.name}
                                                                                             <span className="text-[9px] font-bold text-slate-400 block font-mono">{ing.code}</span>
                                                                                         </td>
-                                                                                        <td className="p-3 text-right font-semibold text-slate-700">{Number(ing.required).toFixed(3)}</td>
+                                                                                        <td className="p-3 text-right font-semibold text-slate-700">{formatQuantityAndUnit(ing.required, ing.unit)}</td>
                                                                                         <td className="p-3">
                                                                                             <div className="flex flex-col gap-1.5 py-1">
                                                                                                 {ing.batches && ing.batches.length > 0 ? (
                                                                                                     ing.batches.map((b, bIdx) => (
                                                                                                         b.batchNo === 'Shortage' ? (
                                                                                                             <span key={bIdx} className="inline-flex items-center text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 gap-1.5">
-                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {Number(b.qtyTaken).toFixed(3)} @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {formatQuantityAndUnit(b.qtyTaken, ing.unit)} @ LKR {Number(b.unitPrice).toFixed(2)}
                                                                                                             </span>
                                                                                                         ) : (
                                                                                                             <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
-                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(3)} @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {formatQuantityAndUnit(b.qtyTaken, ing.unit)} @ LKR {Number(b.unitPrice).toFixed(2)}
                                                                                                             </span>
                                                                                                         )
                                                                                                     ))
@@ -2520,18 +2565,18 @@ const OrderManagement = () => {
                                                                                             {bag.name}
                                                                                             <span className="text-[9px] font-bold text-slate-400 block font-mono">{bag.code}</span>
                                                                                         </td>
-                                                                                        <td className="p-3 text-right font-semibold text-slate-700">{Number(bag.required).toFixed(0)} Pcs</td>
+                                                                                        <td className="p-3 text-right font-semibold text-slate-700">{formatQuantityAndUnit(bag.required, bag.unit || 'Pcs')}</td>
                                                                                         <td className="p-3">
                                                                                             <div className="flex flex-col gap-1.5 py-1">
                                                                                                 {bag.batches && bag.batches.length > 0 ? (
                                                                                                     bag.batches.map((b, bIdx) => (
                                                                                                         b.batchNo === 'Shortage' ? (
                                                                                                             <span key={bIdx} className="inline-flex items-center text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 gap-1.5">
-                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {Number(b.qtyTaken).toFixed(0)} Pcs @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                                <strong className="text-rose-600">⚠️ Shortage (Est)</strong>: Need {formatQuantityAndUnit(b.qtyTaken, bag.unit || 'Pcs')} @ LKR {Number(b.unitPrice).toFixed(2)}
                                                                                                             </span>
                                                                                                         ) : (
                                                                                                             <span key={bIdx} className="inline-flex items-center text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 gap-1.5">
-                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {Number(b.qtyTaken).toFixed(0)} Pcs @ LKR {Number(b.unitPrice).toFixed(2)}
+                                                                                                                <strong className="text-indigo-600">Seq #{b.batchNo}</strong>: Taken {formatQuantityAndUnit(b.qtyTaken, bag.unit || 'Pcs')} @ LKR {Number(b.unitPrice).toFixed(2)}
                                                                                                             </span>
                                                                                                         )
                                                                                                     ))

@@ -28,9 +28,9 @@ const RawMaterialItem = () => {
         RM_NAME_SINHALA: '',
         RM_CATEGORY_ID: '',
         RM_UNIT: '',
-        RM_REORDER_LEVEL: 0,
-        RM_MIN_QTY: 0,
-        RM_MAX_QTY: 0,
+        RM_REORDER_LEVEL: '',
+        RM_MIN_QTY: '',
+        RM_MAX_QTY: '',
         RM_REMARKS: '',
         RM_MATERIAL_TYPE: 'Standard'
     });
@@ -77,9 +77,9 @@ const RawMaterialItem = () => {
             RM_NAME_SINHALA: '',
             RM_CATEGORY_ID: categories[0]?.CAT_ID || '',
             RM_UNIT: 'KG',
-            RM_REORDER_LEVEL: 0,
-            RM_MIN_QTY: 0,
-            RM_MAX_QTY: 0,
+            RM_REORDER_LEVEL: '',
+            RM_MIN_QTY: '',
+            RM_MAX_QTY: '',
             RM_REMARKS: '',
             RM_MATERIAL_TYPE: 'Standard'
         });
@@ -90,11 +90,16 @@ const RawMaterialItem = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
+            const dataToSave = editingMaterial ? { ...editingMaterial } : { ...newMaterial };
+            dataToSave.RM_REORDER_LEVEL = parseFloat(dataToSave.RM_REORDER_LEVEL) || 0;
+            dataToSave.RM_MIN_QTY = parseFloat(dataToSave.RM_MIN_QTY) || 0;
+            dataToSave.RM_MAX_QTY = parseFloat(dataToSave.RM_MAX_QTY) || 0;
+
             if (editingMaterial) {
-                await api.put(`/raw-material/${editingMaterial.RM_ID}`, editingMaterial);
+                await api.put(`/raw-material/${editingMaterial.RM_ID}`, dataToSave);
                 showNotification('Raw material updated successfully', 'success');
             } else {
-                await api.post('/raw-material', newMaterial);
+                await api.post('/raw-material', dataToSave);
                 showNotification('Raw material added successfully', 'success');
             }
             await fetchData();
@@ -105,9 +110,9 @@ const RawMaterialItem = () => {
                 RM_NAME_SINHALA: '',
                 RM_CATEGORY_ID: categories[0]?.CAT_ID || '',
                 RM_UNIT: units[0]?.value || '',
-                RM_REORDER_LEVEL: 0,
-                RM_MIN_QTY: 0,
-                RM_MAX_QTY: 0,
+                RM_REORDER_LEVEL: '',
+                RM_MIN_QTY: '',
+                RM_MAX_QTY: '',
                 RM_REMARKS: '',
                 RM_MATERIAL_TYPE: 'Standard'
             });
@@ -395,9 +400,9 @@ const RawMaterialItem = () => {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            min="0"
+                                            placeholder="0"
                                             onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
-                                            value={editingMaterial ? editingMaterial.RM_REORDER_LEVEL : newMaterial.RM_REORDER_LEVEL}
+                                            value={editingMaterial ? (editingMaterial.RM_REORDER_LEVEL === 0 ? '' : editingMaterial.RM_REORDER_LEVEL) : newMaterial.RM_REORDER_LEVEL}
                                             onChange={(e) => editingMaterial ? setEditingMaterial({ ...editingMaterial, RM_REORDER_LEVEL: e.target.value }) : setNewMaterial({ ...newMaterial, RM_REORDER_LEVEL: e.target.value })}
                                             className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500/50 outline-none"
                                         />
@@ -407,9 +412,9 @@ const RawMaterialItem = () => {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            min="0"
+                                            placeholder="0"
                                             onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
-                                            value={editingMaterial ? editingMaterial.RM_MIN_QTY : newMaterial.RM_MIN_QTY}
+                                            value={editingMaterial ? (editingMaterial.RM_MIN_QTY === 0 ? '' : editingMaterial.RM_MIN_QTY) : newMaterial.RM_MIN_QTY}
                                             onChange={(e) => editingMaterial ? setEditingMaterial({ ...editingMaterial, RM_MIN_QTY: e.target.value }) : setNewMaterial({ ...newMaterial, RM_MIN_QTY: e.target.value })}
                                             className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-rose-500/50 outline-none"
                                         />
@@ -419,9 +424,9 @@ const RawMaterialItem = () => {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            min="0"
+                                            placeholder="0"
                                             onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
-                                            value={editingMaterial ? editingMaterial.RM_MAX_QTY : newMaterial.RM_MAX_QTY}
+                                            value={editingMaterial ? (editingMaterial.RM_MAX_QTY === 0 ? '' : editingMaterial.RM_MAX_QTY) : newMaterial.RM_MAX_QTY}
                                             onChange={(e) => editingMaterial ? setEditingMaterial({ ...editingMaterial, RM_MAX_QTY: e.target.value }) : setNewMaterial({ ...newMaterial, RM_MAX_QTY: e.target.value })}
                                             className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
                                         />
