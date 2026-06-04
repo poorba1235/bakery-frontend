@@ -6,7 +6,7 @@ class QZPrintService {
         this.printerName = 'ReceiptPrinter'; // Default shared name in Windows
     }
 
-   
+
     async connect() {
         if (this.isConnected && qz.websocket.isActive()) {
             return true;
@@ -24,7 +24,7 @@ class QZPrintService {
         }
     }
 
- 
+
     async getAvailablePrinters() {
         await this.connect();
         return await qz.printers.find();
@@ -38,7 +38,7 @@ class QZPrintService {
 
             // Select active printer name: priority 1 is custom UI selection, priority 2 is local keyword match
             let activePrinterName = customPrinterName || localStorage.getItem('qz_selected_printer');
-            
+
             if (!activePrinterName) {
                 activePrinterName = this.printerName; // Fallback to 'ReceiptPrinter'
                 try {
@@ -46,12 +46,12 @@ class QZPrintService {
                     console.log('[QZ Tray] Available printers on this system:', printerList);
                     const matchedPrinter = printerList.find(p => {
                         const name = p.toLowerCase();
-                        return name.includes('receipt') || 
-                               name.includes('thermal') || 
-                               name.includes('tsp') || 
-                               name.includes('pos') || 
-                               name.includes('xprinter') || 
-                               name.includes('xp-');
+                        return name.includes('receipt') ||
+                            name.includes('thermal') ||
+                            name.includes('tsp') ||
+                            name.includes('pos') ||
+                            name.includes('xprinter') ||
+                            name.includes('xp-');
                     });
                     if (matchedPrinter) {
                         activePrinterName = matchedPrinter;
@@ -74,7 +74,7 @@ class QZPrintService {
             // ESC/POS Command sequences
             const ESC = '\x1b';
             const GS = '\x1d';
-            
+
             const commands = {
                 INIT: ESC + '@',
                 ALIGN_CENTER: ESC + 'a\x01',
@@ -90,7 +90,7 @@ class QZPrintService {
             // 3. Compile receipt formatting lines
             const data = [];
             data.push(commands.INIT);
-            
+
             // Header
             data.push(commands.ALIGN_CENTER);
             data.push(commands.BOLD_ON);
@@ -98,8 +98,8 @@ class QZPrintService {
             data.push('INDIKA BAKERS\n');
             data.push(commands.SIZE_NORMAL);
             data.push(commands.BOLD_OFF);
-            data.push('Retail Outlet & Factory Store\n');
-            data.push('Tel: +94 11 234 5678\n');
+            data.push('Mehiellagama, Hiripitiya, Nikadalupotha\n');
+            data.push('Tel: 071660 0165\n');
             data.push('--------------------------------\n');
 
             // Metadata

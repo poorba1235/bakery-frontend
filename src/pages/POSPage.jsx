@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import {
     AlertTriangle,
@@ -7,14 +7,13 @@ import {
     CreditCard,
     DollarSign,
     History,
-    Keyboard,
     Minus,
     Plus,
     Printer,
-    QrCode,
     Receipt,
     Search,
     ShoppingCart,
+    Smartphone,
     Trash2,
     User
 } from 'lucide-react';
@@ -58,6 +57,7 @@ const POSPage = () => {
     // Active Completed Sale State for Direct Printing
     const [completedSale, setCompletedSale] = useState(null);
     const [isSilentPrint, setIsSilentPrint] = useState(true);
+    const [selectedProductForPrice, setSelectedProductForPrice] = useState(null);
 
     // QZ Tray Printer States
     const [qzPrinters, setQzPrinters] = useState([]);
@@ -151,8 +151,10 @@ const POSPage = () => {
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(p =>
-                p.P_NAME.toLowerCase().includes(query) ||
-                p.P_CODE.toLowerCase().includes(query)
+                (p.P_NAME && p.P_NAME.toLowerCase().includes(query)) ||
+                (p.P_CODE && p.P_CODE.toLowerCase().includes(query)) ||
+                (p.P_BARCODE_NO && p.P_BARCODE_NO.toLowerCase().includes(query)) ||
+                (p.actual_barcode && p.actual_barcode.toLowerCase().includes(query))
             );
         }
 
@@ -176,21 +178,26 @@ const POSPage = () => {
     }, [searchHistoryQuery, salesHistory]);
 
     // Cart Management
-    const addToCart = (product) => {
+    const addToCart = (product, selectedPrice) => {
         const stock = parseFloat(product.stock_balance) || 0;
         if (stock <= 0) {
             showNotification('Product is out of stock in storefront!', 'warning');
             return;
         }
 
-        const existing = cart.find(item => item.P_ID === product.P_ID);
+        const priceToUse = selectedPrice !== undefined
+            ? parseFloat(selectedPrice) || 0
+            : parseFloat(product.last_sale_price) || 0;
+
+        const existing = cart.find(item => item.P_ID === product.P_ID && item.unitPrice === priceToUse);
+
         if (existing) {
             if (existing.qty >= stock) {
                 showNotification(`Cannot exceed storefront stock level (${stock})`, 'warning');
                 return;
             }
             setCart(cart.map(item =>
-                item.P_ID === product.P_ID
+                (item.P_ID === product.P_ID && item.unitPrice === priceToUse)
                     ? { ...item, qty: item.qty + 1 }
                     : item
             ));
@@ -198,9 +205,12 @@ const POSPage = () => {
             setCart([...cart, {
                 ...product,
                 qty: 1,
-                unitPrice: parseFloat(product.last_sale_price) || 0
+                unitPrice: priceToUse
             }]);
         }
+
+        // Clear discount when a new item is added
+        setDiscount(0);
     };
 
     const updateQty = (productId, delta) => {
@@ -279,11 +289,15 @@ const POSPage = () => {
             if (!query) return;
 
             // Find exact code match first
-            let matchedProduct = products.find(p => p.P_CODE.toLowerCase() === query);
+            let matchedProduct = products.find(p =>
+                (p.P_CODE && p.P_CODE.toLowerCase() === query) ||
+                (p.P_BARCODE_NO && p.P_BARCODE_NO.toLowerCase() === query) ||
+                (p.actual_barcode && p.actual_barcode.toLowerCase() === query)
+            );
 
             // If no exact code match, search for exact name match
             if (!matchedProduct) {
-                matchedProduct = products.find(p => p.P_NAME.toLowerCase() === query);
+                matchedProduct = products.find(p => p.P_NAME && p.P_NAME.toLowerCase() === query);
             }
 
             // If no exact match, use the first filtered product
@@ -297,7 +311,7 @@ const POSPage = () => {
                     showNotification('Product is out of stock in storefront!', 'warning');
                     return;
                 }
-                addToCart(matchedProduct);
+                setSelectedProductForPrice(matchedProduct);
                 setSearchQuery('');
             } else {
                 showNotification('Product not found!', 'warning');
@@ -364,9 +378,9 @@ const POSPage = () => {
         doc.setFont('Courier', 'normal');
         doc.setFontSize(8);
         y += 4;
-        doc.text("Retail Outlet & Factory Store", width / 2, y, { align: 'center' });
+        doc.text("Mehiellagama, Hiripitiya, Nikadalupotha", width / 2, y, { align: 'center' });
         y += 3;
-        doc.text("Tel: +94 11 234 5678", width / 2, y, { align: 'center' });
+        doc.text("Tel: 071660 0165", width / 2, y, { align: 'center' });
 
         y += 3;
         doc.text("------------------------------------------", width / 2, y, { align: 'center' });
@@ -379,7 +393,12 @@ const POSPage = () => {
         y += 3.5;
         doc.text(`Cashier:     ${targetSale.cashier.toUpperCase()}`, 5, y);
         y += 3.5;
+        y += 3.5;
         doc.text(`Customer:    ${targetSale.customerName}`, 5, y);
+        y += 3.5;
+        doc.setFont('Courier', 'bold');
+        doc.text(`Payment:     ${(targetSale.paymentMethod || 'CASH').toUpperCase()}`, 5, y);
+        doc.setFont('Courier', 'normal');
 
         y += 3;
         doc.text("------------------------------------------", width / 2, y, { align: 'center' });
@@ -624,8 +643,9 @@ const POSPage = () => {
                 paymentMethod,
                 customerName
             };
-
-            const response = await api.post('/pos/sales', saleData);
+            // const response = await api.post('/pos/sales', saleData);
+            // Mock response for frontend testing
+            const response = { data: { invoiceNo: 'TEST-' + Math.floor(Math.random() * 10000) } };
 
             const completed = {
                 invoiceNo: response.data.invoiceNo,
@@ -649,7 +669,7 @@ const POSPage = () => {
                 triggerDirectPrint(completed);
             } else if (checkoutAction === 'qz') {
                 triggerDirectPrint(completed);
-                handleQZPrint(completed);
+                // handleQZPrint(completed);
             } else if (checkoutAction === 'pdf') {
                 triggerDirectPrint(completed);
                 downloadReceiptPDF(completed);
@@ -738,6 +758,20 @@ const POSPage = () => {
                 e.preventDefault();
                 setPaymentMethod('Card');
                 showNotification('Payment: Card', 'info');
+                return;
+            }
+
+            if (e.key === 'F10') {
+                e.preventDefault();
+                setPaymentMethod('Credit');
+                showNotification('Payment: Credit', 'info');
+                return;
+            }
+
+            if (e.key === 'F6') {
+                e.preventDefault();
+                setPaymentMethod('Online Transfer');
+                showNotification('Payment: Online Transfer', 'info');
                 return;
             }
 
@@ -963,7 +997,7 @@ const POSPage = () => {
                                             <motion.div
                                                 whileHover={{ y: -4 }}
                                                 key={prod.P_ID}
-                                                onClick={() => stock > 0 && addToCart(prod)}
+                                                onClick={() => stock > 0 && setSelectedProductForPrice(prod)}
                                                 className={`bg-white dark:bg-[#1e293b] rounded-2xl border p-4 shadow-sm transition-all flex flex-col justify-between ${stock > 0
                                                     ? 'cursor-pointer hover:shadow-lg border-slate-200 dark:border-[#334155]'
                                                     : 'opacity-60 border-red-200 dark:border-red-950 bg-red-50/10 dark:bg-red-950/5'
@@ -1069,7 +1103,9 @@ const POSPage = () => {
                                                             ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
                                                             : sale.PSH_PAYMENT_METHOD === 'Card'
                                                                 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
-                                                                : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
+                                                                : sale.PSH_PAYMENT_METHOD === 'Credit'
+                                                                    ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                                                                    : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
                                                             }`}>
                                                             {sale.PSH_PAYMENT_METHOD}
                                                         </span>
@@ -1103,6 +1139,11 @@ const POSPage = () => {
                         <div className="flex items-center gap-2">
                             <ShoppingCart className="w-5 h-5 text-blue-600" />
                             <span className="font-extrabold text-base text-slate-900 dark:text-white">Active Order</span>
+                            {cart.length > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-[10px] font-black">
+                                    {cart.length}
+                                </span>
+                            )}
                         </div>
                         <button
                             onClick={clearCart}
@@ -1114,53 +1155,68 @@ const POSPage = () => {
                     </div>
 
                     {/* Cart Items Area */}
-                    <div className="flex-1 p-4 overflow-y-auto max-h-[180px] custom-scrollbar flex flex-col gap-3">
+                    <div className="flex-1 p-4 overflow-y-auto max-h-[40vh] 2xl:max-h-[50vh] custom-scrollbar flex flex-col gap-3 relative">
                         {cart.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex-1 flex flex-col items-center justify-center py-10 text-center"
+                            >
                                 <ShoppingCart className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 animate-pulse" />
                                 <p className="font-semibold text-slate-400 text-xs">Cart is currently empty.</p>
                                 <p className="text-[10px] text-slate-400 mt-0.5">Select products to begin billing.</p>
-                            </div>
+                            </motion.div>
                         ) : (
-                            cart.map((item) => (
-                                <div key={item.P_ID} className="flex justify-between items-center gap-3 bg-slate-50 dark:bg-[#0f172a]/40 p-2.5 rounded-xl border border-slate-100 dark:border-[#0f172a]/20">
-                                    <div className="flex-1 min-w-0">
-                                        <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                                            {item.P_NAME}
-                                        </h5>
-                                        <span className="text-[10px] text-slate-400">Rs. {item.unitPrice.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => updateQty(item.P_ID, -1)}
-                                            className="p-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md hover:bg-slate-300"
-                                        >
-                                            <Minus className="w-3 h-3" />
-                                        </button>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max={parseFloat(products.find(p => p.P_ID === item.P_ID)?.stock_balance) || 999}
-                                            value={item.qty}
-                                            onChange={(e) => handleQtyChange(item.P_ID, e.target.value)}
-                                            onFocus={(e) => e.target.select()}
-                                            className="w-10 text-center text-xs font-black bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 py-0.5 text-slate-800 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        />
-                                        <button
-                                            onClick={() => updateQty(item.P_ID, 1)}
-                                            className="p-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md hover:bg-slate-300"
-                                        >
-                                            <Plus className="w-3 h-3" />
-                                        </button>
-                                        <button
-                                            onClick={() => removeFromCart(item.P_ID)}
-                                            className="p-1 hover:text-red-500 rounded-md"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-500" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
+                            <AnimatePresence>
+                                {cart.map((item) => (
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                                        transition={{ duration: 0.2 }}
+                                        key={item.P_ID}
+                                        className="flex justify-between items-center gap-3 bg-white dark:bg-[#0f172a]/60 p-2.5 rounded-xl border border-slate-200 dark:border-[#334155]/60 shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                                                {item.P_NAME}
+                                            </h5>
+                                            <span className="text-[10px] text-slate-400">Rs. {item.unitPrice.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                                            <button
+                                                onClick={() => updateQty(item.P_ID, -1)}
+                                                className="p-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded shadow-sm hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                                            >
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={parseFloat(products.find(p => p.P_ID === item.P_ID)?.stock_balance) || 999}
+                                                value={item.qty}
+                                                onChange={(e) => handleQtyChange(item.P_ID, e.target.value)}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-8 text-center text-xs font-black bg-transparent border-none focus:outline-none py-0.5 text-slate-800 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                            <button
+                                                onClick={() => updateQty(item.P_ID, 1)}
+                                                className="p-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded shadow-sm hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                            <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-600 mx-0.5"></div>
+                                            <button
+                                                onClick={() => removeFromCart(item.P_ID)}
+                                                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         )}
                     </div>
 
@@ -1196,11 +1252,12 @@ const POSPage = () => {
                         {/* Payment Selector */}
                         <div className="flex flex-col gap-1">
                             <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Payment Method</label>
-                            <div className="grid grid-cols-3 gap-1.5">
+                            <div className="grid grid-cols-2 gap-1.5">
                                 {[
                                     { mode: 'Cash', icon: DollarSign, color: 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5' },
                                     { mode: 'Card', icon: CreditCard, color: 'border-blue-500/30 text-blue-600 bg-blue-500/5' },
-                                    { mode: 'QR', icon: QrCode, color: 'border-indigo-500/30 text-indigo-600 bg-indigo-500/5' }
+                                    { mode: 'Credit', icon: CreditCard, color: 'border-rose-500/30 text-rose-600 bg-rose-500/5' },
+                                    { mode: 'Online Transfer', icon: Smartphone, color: 'border-indigo-500/30 text-indigo-600 bg-indigo-500/5' },
                                 ].map((item) => (
                                     <button
                                         key={item.mode}
@@ -1398,9 +1455,10 @@ const POSPage = () => {
 
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <img src="/logo.png" alt="Logo" style={{ height: '35px', margin: '0 auto 4px auto', display: 'block', filter: 'grayscale(100%)' }} />
                         <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
-                        <span style={{ fontSize: '10px', display: 'block' }}>Retail Outlet & Factory Store</span>
-                        <span style={{ fontSize: '9px', display: 'block' }}>Tel: +94 11 234 5678</span>
+                        <span style={{ fontSize: '10px', display: 'block' }}>Mehiellagama, Hiripitiya, Nikadalupotha</span>
+                        <span style={{ fontSize: '9px', display: 'block' }}>Tel: 071660 0165</span>
                         <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
                     </div>
 
@@ -1421,6 +1479,10 @@ const POSPage = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span>Customer:</span>
                             <span>{completedSale.customerName}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>PAYMENT METHOD:</span>
+                            <span style={{ fontWeight: 'bold' }}>{completedSale.paymentMethod}</span>
                         </div>
                     </div>
 
@@ -1468,10 +1530,7 @@ const POSPage = () => {
 
                     {/* Reconcile payment details */}
                     <div style={{ fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>PAYMENT METHOD:</span>
-                            <span style={{ fontWeight: 'bold' }}>{completedSale.paymentMethod}</span>
-                        </div>
+                        
                         {completedSale.paymentMethod === 'Cash' && completedSale.amountTendered > 0 && (
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1514,10 +1573,11 @@ const POSPage = () => {
                             {/* Realistic Paper Jagged Torn Header */}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[linear-gradient(45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%)] bg-[size:6px_6px]"></div>
 
-                            <div className="text-center font-bold mb-2 pt-1">
+                            <div className="text-center font-bold mb-2 pt-1 flex flex-col items-center">
+                                <img src="/logo.png" alt="Logo" className="h-8 w-auto mb-1 opacity-90 grayscale" />
                                 <span className="text-[14px] tracking-wide block">INDIKA BAKERS</span>
-                                <span className="text-[9px] block text-slate-500">Retail & Factory Store</span>
-                                <span className="text-[9px] block text-slate-500">Tel: +94 11 234 5678</span>
+                                <span className="text-[9px] block text-slate-500">Mehiellagama, Hiripitiya, Nikadalupotha</span>
+                                <span className="text-[9px] block text-slate-500">Tel: 071660 0165</span>
                                 <div className="border-b border-dashed border-black my-1.5"></div>
                             </div>
 
@@ -1526,6 +1586,7 @@ const POSPage = () => {
                                 <div className="flex justify-between"><span>Date:</span><span>{new Date(completedSale.date).toLocaleString()}</span></div>
                                 <div className="flex justify-between"><span>Cashier:</span><span className="capitalize">{completedSale.cashier}</span></div>
                                 <div className="flex justify-between"><span>Customer:</span><span>{completedSale.customerName}</span></div>
+                                <div className="flex justify-between"><span>Payment:</span><span className="font-bold text-slate-800 dark:text-white uppercase">{completedSale.paymentMethod || 'CASH'}</span></div>
                             </div>
 
                             <div className="border-b border-dashed border-black my-1.5"></div>
@@ -1556,7 +1617,7 @@ const POSPage = () => {
                                 {completedSale.discount > 0 && <div className="flex justify-between text-red-600"><span>DISCOUNT:</span><span>-Rs. {completedSale.discount.toFixed(2)}</span></div>}
                                 <div className="flex justify-between font-bold text-[11px]"><span>NET TOTAL:</span><span>Rs. {completedSale.netAmount.toFixed(2)}</span></div>
                                 <div className="flex justify-between"><span>PAID CASH:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
-                                <div className="flex justify-between font-bold text-emerald-600"><span>CHANGE:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
+                                <div className="flex justify-between font-bold text-emerald-600"><span>Balance:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
                             </div>
 
                             <div className="border-b border-dashed border-black my-1.5"></div>
@@ -1608,7 +1669,7 @@ const POSPage = () => {
             )}
 
             {/* Keyboard Shortcuts Help Bar */}
-            <div className="mt-6 p-3 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-2xl shadow-sm flex flex-wrap gap-4 items-center justify-center text-xs text-slate-500 dark:text-slate-400 no-print">
+            {/* <div className="mt-6 p-3 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-2xl shadow-sm flex flex-wrap gap-4 items-center justify-center text-xs text-slate-500 dark:text-slate-400 no-print">
                 <span className="font-extrabold uppercase text-[10px] tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
                     <Keyboard className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
                     Cashier Hotkeys:
@@ -1617,10 +1678,79 @@ const POSPage = () => {
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">Enter</kbd> <span>Add Item</span></div>
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F7</kbd> <span>Set Cash</span></div>
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F8</kbd> <span>Set Card</span></div>
+                <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F10</kbd> <span>Set Credit</span></div>
+                <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F6</kbd> <span>Set Online</span></div>
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F2</kbd> <span>Complete Checkout</span></div>
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">F9</kbd> <span>Clear Order</span></div>
                 <div className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-[#334155] rounded text-[10px] font-bold text-slate-700 dark:text-slate-300">Esc</kbd> <span>Close Preview</span></div>
-            </div>
+            </div> */}
+            {/* Price Selection Modal */}
+            <AnimatePresence>
+                {selectedProductForPrice && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-6 w-full max-w-sm"
+                        >
+                            <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white line-clamp-2">
+                                {selectedProductForPrice.P_NAME}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                                Select the pricing tier to apply:
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        addToCart(selectedProductForPrice, selectedProductForPrice.last_sale_price);
+                                        setSelectedProductForPrice(null);
+                                    }}
+                                    className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 dark:hover:border-blue-500 transition-colors text-left group"
+                                >
+                                    <div className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-400">Retail Price</div>
+                                    <div className="text-blue-600 dark:text-blue-400 font-black text-lg">Rs. {(parseFloat(selectedProductForPrice.last_sale_price) || 0).toFixed(2)}</div>
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        addToCart(selectedProductForPrice, selectedProductForPrice.last_wholesale_price);
+                                        setSelectedProductForPrice(null);
+                                    }}
+                                    className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors text-left group"
+                                >
+                                    <div className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">Wholesale</div>
+                                    <div className="text-emerald-600 dark:text-emerald-400 font-black text-lg">Rs. {(parseFloat(selectedProductForPrice.last_wholesale_price) || 0).toFixed(2)}</div>
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        addToCart(selectedProductForPrice, selectedProductForPrice.last_selling_price);
+                                        setSelectedProductForPrice(null);
+                                    }}
+                                    className="flex justify-between items-center p-3 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-500 dark:hover:border-purple-500 transition-colors text-left group"
+                                >
+                                    <div className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-purple-700 dark:group-hover:text-purple-400">Selling Price</div>
+                                    <div className="text-purple-600 dark:text-purple-400 font-black text-lg">Rs. {(parseFloat(selectedProductForPrice.last_selling_price) || 0).toFixed(2)}</div>
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setSelectedProductForPrice(null)}
+                                className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
