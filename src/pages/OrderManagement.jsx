@@ -49,42 +49,42 @@ const formatQuantityAndUnit = (qty, unit) => {
 
     if (lowerUnit === 'kg') {
         if (numQty < 1 && numQty >= 0.001) {
-            return `${parseFloat((numQty * 1000).toFixed(3))} g`;
+            return `${(numQty * 1000).toFixed(2)} g`;
         } else if (numQty < 0.001 && numQty > 0) {
-            return `${parseFloat((numQty * 1000000).toFixed(3))} mg`;
+            return `${(numQty * 1000000).toFixed(2)} mg`;
         }
     }
     
     if (lowerUnit === 'g') {
         if (numQty >= 1000) {
-            return `${parseFloat((numQty / 1000).toFixed(3))} kg`;
+            return `${(numQty / 1000).toFixed(2)} kg`;
         } else if (numQty < 1 && numQty > 0) {
-            return `${parseFloat((numQty * 1000).toFixed(3))} mg`;
+            return `${(numQty * 1000).toFixed(2)} mg`;
         }
     }
     
     if (lowerUnit === 'mg') {
         if (numQty >= 1000000) {
-            return `${parseFloat((numQty / 1000000).toFixed(3))} kg`;
+            return `${(numQty / 1000000).toFixed(2)} kg`;
         } else if (numQty >= 1000) {
-            return `${parseFloat((numQty / 1000).toFixed(3))} g`;
+            return `${(numQty / 1000).toFixed(2)} g`;
         }
     }
 
     if (lowerUnit === 'l') {
         if (numQty < 1 && numQty >= 0.001) {
-            return `${parseFloat((numQty * 1000).toFixed(3))} ml`;
+            return `${(numQty * 1000).toFixed(2)} ml`;
         }
     }
     
     if (lowerUnit === 'ml') {
         if (numQty >= 1000) {
-            return `${parseFloat((numQty / 1000).toFixed(3))} l`;
+            return `${(numQty / 1000).toFixed(2)} l`;
         }
     }
     
     const isDecimalUnit = ['kg', 'l', 'g', 'ml', 'mg'].includes(lowerUnit);
-    const formattedQty = isDecimalUnit ? parseFloat(numQty.toFixed(3)) : parseFloat(numQty.toFixed(0));
+    const formattedQty = isDecimalUnit ? numQty.toFixed(2) : Math.round(numQty).toString();
     return `${formattedQty} ${unit || ''}`.trim();
 };
 
@@ -2473,7 +2473,7 @@ const OrderManagement = () => {
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Ordered Qty</span>
-                                                                    <span className="font-black text-slate-800">{item.qty} {item.unit}</span>
+                                                                    <span className="font-black text-slate-800">{item.qty} </span>
                                                                 </div>
                                                             </div>
 

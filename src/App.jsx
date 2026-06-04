@@ -23,6 +23,9 @@ import RecipeManagement from './pages/RecipeManagement';
 import RawMaterialCategory from './pages/RawMaterialCategory';
 import RawMaterialItem from './pages/RawMaterialItem';
 import WarehouseLocation from './pages/WarehouseLocation';
+import CustomerManagement from './pages/CustomerManagement';
+import SalesRepOrderRequest from './pages/SalesRepOrderRequest';
+import SalesRepOrderApproval from './pages/SalesRepOrderApproval';
 import SupplierManagement from './pages/SupplierManagement';
 import TaxManagement from './pages/TaxManagement';
 import GRNManagement from './pages/GRNManagement';
@@ -66,6 +69,30 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ResetPassword />} />
+              <Route
+                path="/maintain/customers"
+                element={
+                  <ProtectedLayout>
+                    <CustomerManagement />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/inventory/sales-rep-requests"
+                element={
+                  <ProtectedLayout>
+                    <SalesRepOrderRequest />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/inventory/sales-rep-distribute"
+                element={
+                  <ProtectedLayout>
+                    <SalesRepOrderApproval />
+                  </ProtectedLayout>
+                }
+              />
               <Route
                 path="/"
                 element={

@@ -1,0 +1,409 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    CheckCircle,
+    Clock,
+    FileText,
+    Loader2,
+    PackageSearch,
+    Plus,
+    Search,
+    ShoppingBag,
+    Trash2,
+    X
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
+import api from '../services/api';
+
+const SalesRepOrderRequest = () => {
+    const { user: currentUser } = useAuth();
+    const { showNotification } = useNotification();
+    
+    const [orders, setOrders] = useState([]);
+    const [salesReps, setSalesReps] = useState([]);
+    const [products, setProducts] = useState([]);
+    
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    
+    // Create Modal States
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        SR_ID: '',
+        SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+        details: []
+    });
+
+    // View Modal States
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewingOrder, setViewingOrder] = useState(null);
+
+    const perms = currentUser?.permissions?.split(',') || [];
+    const hasPermission = perms.includes('order-manage'); // using order-manage for this
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [ordersRes, repsRes, productsRes] = await Promise.all([
+                api.get('/sales-rep-orders'),
+                api.get('/sales-rep'),
+                api.get('/product/items')
+            ]);
+            setOrders(ordersRes.data);
+            setSalesReps(repsRes.data);
+            setProducts(productsRes.data);
+        } catch (error) {
+            console.error('Fetch Data Error:', error);
+            showNotification(`Failed to load data: ${error.message}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCreateOpen = () => {
+        setFormData({
+            SR_ID: '',
+            SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+            details: []
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const addProductToOrder = (productId) => {
+        const product = products.find(p => p.P_ID === parseInt(productId));
+        if (!product) return;
+        
+        if (formData.details.find(d => d.P_ID === product.P_ID)) {
+            showNotification('Product already added to order', 'error');
+            return;
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            details: [
+                ...prev.details,
+                {
+                    P_ID: product.P_ID,
+                    P_NAME: product.P_NAME,
+                    P_CODE: product.P_CODE,
+                    SROD_REQUESTED_QTY: 1,
+                    C_ID: null // We'll keep it simple: general request for rep
+                }
+            ]
+        }));
+    };
+
+    const updateProductQty = (productId, qty) => {
+        setFormData(prev => ({
+            ...prev,
+            details: prev.details.map(d => 
+                d.P_ID === productId ? { ...d, SROD_REQUESTED_QTY: qty } : d
+            )
+        }));
+    };
+
+    const removeProduct = (productId) => {
+        setFormData(prev => ({
+            ...prev,
+            details: prev.details.filter(d => d.P_ID !== productId)
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!formData.SR_ID) {
+            showNotification('Please select a Sales Representative', 'error');
+            return;
+        }
+        
+        if (formData.details.length === 0) {
+            showNotification('Please add at least one product', 'error');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await api.post('/sales-rep-orders', formData);
+            showNotification('Order request created successfully', 'success');
+            await fetchData();
+            setIsCreateModalOpen(false);
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Failed to create order', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const openViewModal = async (orderId) => {
+        try {
+            const res = await api.get(`/sales-rep-orders/${orderId}`);
+            setViewingOrder(res.data);
+            setIsViewModalOpen(true);
+        } catch (error) {
+            showNotification('Failed to fetch order details', 'error');
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 0: return <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">Pending</span>;
+            case 1: return <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">Approved & Distributed</span>;
+            case 2: return <span className="px-2.5 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-bold">Rejected</span>;
+            default: return <span className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-bold">Unknown</span>;
+        }
+    };
+
+    const filteredData = orders.filter(item => 
+        searchTerm === '' || 
+        (item.SR_NAME || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.SROH_ID.toString().includes(searchTerm)
+    );
+    
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    return (
+        <div className="p-4 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Sales Rep Order Requests</h1>
+                    <p className="text-slate-600 dark:text-[#94a3b8]">Create product requests for tomorrow's distribution.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleCreateOpen}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-blue-600/20 transition-all font-semibold"
+                    >
+                        <Plus className="w-5 h-5" />
+                        <span>New Request</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 text-slate-500 dark:text-[#94a3b8] text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-[#334155]">
+                                <th className="px-6 py-4">Order ID</th>
+                                <th className="px-6 py-4">Sales Rep</th>
+                                <th className="px-6 py-4">For Date</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Requested On</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+                                        Loading orders...
+                                    </td>
+                                </tr>
+                            ) : paginatedData.map((order) => (
+                                <tr key={order.SROH_ID} className="hover:bg-slate-50/50 dark:hover:bg-[#1e293b]/50 transition-colors">
+                                    <td className="px-6 py-4 font-mono font-bold text-sm text-slate-700 dark:text-slate-300">
+                                        #{order.SROH_ID}
+                                    </td>
+                                    <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">
+                                        {order.SR_NAME || 'Unknown'}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm font-bold text-blue-600 dark:text-blue-400">
+                                        {new Date(order.SROH_ORDER_FOR_DATE).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {getStatusBadge(order.SROH_STATUS)}
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">
+                                        {new Date(order.SROH_CREATED_DATE).toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button 
+                                            onClick={() => openViewModal(order.SROH_ID)} 
+                                            className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+                                        >
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Create Modal */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)} />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-4xl bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                            <div className="p-6 border-b border-slate-200 dark:border-[#334155] flex justify-between items-center bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-t-3xl">
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
+                                    <ShoppingBag className="w-5 h-5 mr-2 text-blue-500" />
+                                    New Order Request
+                                </h3>
+                                <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            
+                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sales Representative *</label>
+                                        <select required value={formData.SR_ID} onChange={e => setFormData({...formData, SR_ID: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium">
+                                            <option value="">Select a Rep...</option>
+                                            {salesReps.map(sr => (
+                                                <option key={sr.SR_ID} value={sr.SR_ID}>{sr.SR_NAME}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Order For Date *</label>
+                                        <input type="date" required value={formData.SROH_ORDER_FOR_DATE} onChange={e => setFormData({...formData, SROH_ORDER_FOR_DATE: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-2">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Add Product</label>
+                                            <select 
+                                                className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                                onChange={(e) => {
+                                                    if(e.target.value) {
+                                                        addProductToOrder(e.target.value);
+                                                        e.target.value = '';
+                                                    }
+                                                }}
+                                            >
+                                                <option value="">Select a product to add...</option>
+                                                {products.map(p => (
+                                                    <option key={p.P_ID} value={p.P_ID}>{p.P_NAME} ({p.P_CODE})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {formData.details.length > 0 && (
+                                        <div className="border border-slate-200 dark:border-[#334155] rounded-xl overflow-hidden">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-slate-50 dark:bg-[#0f172a]">
+                                                    <tr className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                                                        <th className="px-4 py-3">Product Name</th>
+                                                        <th className="px-4 py-3 w-32">Req. Qty</th>
+                                                        <th className="px-4 py-3 w-16"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                                                    {formData.details.map(item => (
+                                                        <tr key={item.P_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-800 dark:text-white">{item.P_NAME}</div>
+                                                                <div className="text-xs text-slate-500">{item.P_CODE}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <input 
+                                                                    type="number" 
+                                                                    min="1"
+                                                                    value={item.SROD_REQUESTED_QTY}
+                                                                    onChange={(e) => updateProductQty(item.P_ID, e.target.value)}
+                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-center font-bold"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <button type="button" onClick={() => removeProduct(item.P_ID)} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </form>
+                            
+                            <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-end gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
+                                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                                <button type="submit" disabled={isSaving || formData.details.length === 0} onClick={handleSubmit} className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all flex items-center disabled:opacity-50">
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                    Submit Request
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* View Modal */}
+            <AnimatePresence>
+                {isViewModalOpen && viewingOrder && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsViewModalOpen(false)} />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-3xl bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl overflow-hidden">
+                            <div className="p-6 border-b border-slate-200 dark:border-[#334155] flex justify-between items-center bg-slate-50 dark:bg-[#0f172a]">
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
+                                    <FileText className="w-5 h-5 mr-2 text-blue-500" />
+                                    Order #{viewingOrder.header.SROH_ID} Details
+                                </h3>
+                                <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl">
+                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status</div>
+                                        <div>{getStatusBadge(viewingOrder.header.SROH_STATUS)}</div>
+                                    </div>
+                                    <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl">
+                                        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Order For</div>
+                                        <div className="font-bold text-slate-800 dark:text-white">{new Date(viewingOrder.header.SROH_ORDER_FOR_DATE).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                                <h4 className="font-bold text-slate-800 dark:text-white mb-3">Requested Items</h4>
+                                <div className="border border-slate-200 dark:border-[#334155] rounded-xl overflow-hidden">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50 dark:bg-[#0f172a] text-slate-500 font-bold uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-4 py-3">Item</th>
+                                                <th className="px-4 py-3 text-center">Req Qty</th>
+                                                <th className="px-4 py-3 text-center">Dist Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                                            {viewingOrder.details.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-bold text-slate-800 dark:text-white">{item.P_NAME}</div>
+                                                        <div className="text-xs text-slate-500">{item.P_CODE}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center font-mono font-bold text-blue-600">{item.SROD_REQUESTED_QTY}</td>
+                                                    <td className="px-4 py-3 text-center font-mono font-bold text-emerald-600">{item.SROD_DISTRIBUTED_QTY}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+export default SalesRepOrderRequest;

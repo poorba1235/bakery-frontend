@@ -69,6 +69,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             subItems: [
                 { name: 'Production Orders', path: '/inventory/orders', icon: ShoppingBag },
                 { name: 'Order Cross Check', path: '/inventory/order-cross-check', icon: ClipboardList },
+                { name: 'Sales Rep Requests', path: '/inventory/sales-rep-requests', icon: ClipboardList },
+                { name: 'Bakery Distribution', path: '/inventory/sales-rep-distribute', icon: Truck },
                 { name: 'Storefront POS', path: '/pos', icon: Receipt }
             ]
         },
@@ -100,6 +102,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 { name: 'Vehicle Management', path: '/maintain/vehicles', icon: Truck },
                 { name: 'Area & Route', path: '/maintain/area-route', icon: MapPin },
                 { name: 'Sales Representative', path: '/maintain/sales-rep', icon: Users },
+                { name: 'Customers (Shops)', path: '/maintain/customers', icon: Users },
                 { name: 'Suppliers', path: '/suppliers', icon: Users, permission: 'supply-customer' },
                 // { name: 'Tax', path: '/maintain/tax', icon: Receipt, permission: 'tax' }
             ]
