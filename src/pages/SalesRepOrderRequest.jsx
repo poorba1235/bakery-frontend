@@ -177,7 +177,7 @@ const SalesRepOrderRequest = () => {
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Sales Rep Order Requests</h1>
                     <p className="text-slate-600 dark:text-[#94a3b8]">Create product requests for tomorrow's distribution.</p>
                 </div>
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                     <button
                         onClick={handleCreateOpen}
                         className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-blue-600/20 transition-all font-semibold"
@@ -185,7 +185,7 @@ const SalesRepOrderRequest = () => {
                         <Plus className="w-5 h-5" />
                         <span>New Request</span>
                     </button>
-                </div>
+                </div> */}
             </div>
 
             <div className="bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-2xl overflow-hidden shadow-xl">
