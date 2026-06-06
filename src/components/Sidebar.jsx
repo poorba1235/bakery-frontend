@@ -71,6 +71,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 { name: 'Order Cross Check', path: '/inventory/order-cross-check', icon: ClipboardList },
                 { name: 'Sales Rep Requests', path: '/inventory/sales-rep-requests', icon: ClipboardList },
                 { name: 'Bakery Distribution', path: '/inventory/sales-rep-distribute', icon: Truck },
+                { name: 'Daily Settlements', path: '/inventory/sales-rep-settlements', icon: Receipt },
                 { name: 'Storefront POS', path: '/pos', icon: Receipt }
             ]
         },

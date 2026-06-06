@@ -70,7 +70,8 @@ const ProductManagement = () => {
         P_PACK_OR_SINGLE: 'Single',
         P_ISSUE_BAG_status: 0,
         actual_barcode: '',
-        P_Qty: 1
+        P_Qty: 1,
+        P_WEIGHT: 0.00
     });
 
     const PACK_TYPES = ['Single', 'Pack'];
@@ -108,7 +109,8 @@ const ProductManagement = () => {
                 P_REORDER_LEVEL: product.P_REORDER_LEVEL === 0 || product.P_REORDER_LEVEL === '0' ? '' : product.P_REORDER_LEVEL ?? '',
                 P_MINIMUM_LEVEL: product.P_MINIMUM_LEVEL === 0 || product.P_MINIMUM_LEVEL === '0' ? '' : product.P_MINIMUM_LEVEL ?? '',
                 P_MAXIMUM_LEVEL: product.P_MAXIMUM_LEVEL === 0 || product.P_MAXIMUM_LEVEL === '0' ? '' : product.P_MAXIMUM_LEVEL ?? '',
-                P_Qty: product.P_Qty ?? 1
+                P_Qty: product.P_Qty ?? 1,
+                P_WEIGHT: product.P_WEIGHT ?? 0.00
             });
             setSelectedFile(null);
         } else {
@@ -132,7 +134,8 @@ const ProductManagement = () => {
                 P_PACK_OR_SINGLE: 'Single',
                 P_ISSUE_BAG_status: 0,
                 actual_barcode: '',
-                P_Qty: 1
+                P_Qty: 1,
+                P_WEIGHT: 0.00
             });
             try {
                 const [codeRes, barcodeRes] = await Promise.all([
@@ -179,7 +182,8 @@ const ProductManagement = () => {
             'P_ITEM_STORED_DAYS',
             'P_INSIDE_ITEM_COUNT',
             'P_ISSUE_BAG_status',
-            'P_Qty'
+            'P_Qty',
+            'P_WEIGHT'
         ];
 
         // Packaging & Shelf-life validation
@@ -720,6 +724,16 @@ const ProductManagement = () => {
                                                     value={formData.P_UNIT}
                                                     onChange={(val) => setFormData({ ...formData, P_UNIT: val })}
                                                     placeholder="Select Unit"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-teal-500">Weight</label>
+                                                <input
+                                                    type="number" min="0" step="0.01" value={formData.P_WEIGHT || ''}
+                                                    onChange={(e) => setFormData({ ...formData, P_WEIGHT: e.target.value })}
+                                                    onKeyDown={handleNumericKeyDown}
+                                                    placeholder="0.00"
+                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold"
                                                 />
                                             </div>
                                             <div className="space-y-2">

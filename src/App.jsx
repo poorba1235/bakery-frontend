@@ -26,6 +26,7 @@ import WarehouseLocation from './pages/WarehouseLocation';
 import CustomerManagement from './pages/CustomerManagement';
 import SalesRepOrderRequest from './pages/SalesRepOrderRequest';
 import SalesRepOrderApproval from './pages/SalesRepOrderApproval';
+import SalesRepSettlements from './pages/SalesRepSettlements';
 import SupplierManagement from './pages/SupplierManagement';
 import TaxManagement from './pages/TaxManagement';
 import GRNManagement from './pages/GRNManagement';
@@ -90,6 +91,14 @@ function App() {
                 element={
                   <ProtectedLayout>
                     <SalesRepOrderApproval />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/inventory/sales-rep-settlements"
+                element={
+                  <ProtectedLayout>
+                    <SalesRepSettlements />
                   </ProtectedLayout>
                 }
               />

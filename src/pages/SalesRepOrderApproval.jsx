@@ -32,6 +32,9 @@ const SalesRepOrderApproval = () => {
     const perms = currentUser?.permissions?.split(',') || [];
     const hasPermission = perms.includes('order-manage'); // using order-manage for this
 
+    const roles = currentUser?.roles?.split(',') || [];
+    const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -193,7 +196,7 @@ const SalesRepOrderApproval = () => {
                                         {new Date(order.SROH_CREATED_DATE).toLocaleString()}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        {order.SROH_STATUS === 0 ? (
+                                        {order.SROH_STATUS === 0 && isAdmin ? (
                                             <button 
                                                 onClick={() => openDistributeModal(order.SROH_ID)} 
                                                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center ml-auto"
@@ -216,6 +219,30 @@ const SalesRepOrderApproval = () => {
                     </table>
                 </div>
             </div>
+
+            {!isLoading && sortedData.length > itemsPerPage && (
+                <div className="mt-6 flex justify-between items-center bg-white dark:bg-[#1e293b] p-4 rounded-2xl border border-slate-300 dark:border-[#334155] shadow-sm">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                        Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} entries
+                    </span>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 border border-slate-300 dark:border-[#334155] rounded-xl text-slate-600 dark:text-slate-400 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-[#0f172a] font-bold transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedData.length / itemsPerPage)))}
+                            disabled={currentPage === Math.ceil(sortedData.length / itemsPerPage)}
+                            className="px-4 py-2 border border-slate-300 dark:border-[#334155] rounded-xl text-slate-600 dark:text-slate-400 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-[#0f172a] font-bold transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Distribute Modal */}
             <AnimatePresence>
@@ -265,7 +292,7 @@ const SalesRepOrderApproval = () => {
                                                         {item.SROD_REQUESTED_QTY}
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
-                                                        {activeOrder.SROH_STATUS === 0 ? (
+                                                        {activeOrder.SROH_STATUS === 0 && isAdmin ? (
                                                             <input 
                                                                 type="number" 
                                                                 min="0"
@@ -286,7 +313,7 @@ const SalesRepOrderApproval = () => {
                                 </div>
                             </div>
                             
-                            {activeOrder.SROH_STATUS === 0 ? (
+                            {activeOrder.SROH_STATUS === 0 && isAdmin ? (
                                 <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-between gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
                                     <button type="button" onClick={handleReject} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors">
                                         Reject Request

@@ -221,7 +221,7 @@ const CustomerManagement = () => {
                                         #{item.C_ID}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-slate-800 dark:text-white font-black text-lg">{item.C_NAME}</div>
+                                        <div className="text-slate-800 dark:text-white font-black text-sm">{item.C_NAME}</div>
                                         {item.C_DETAILS && (
                                             <div className="text-xs text-slate-500 flex items-center mt-1">
                                                 <FileText className="w-3 h-3 mr-1" />
