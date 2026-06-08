@@ -6,31 +6,45 @@ import {
     Search,
     Truck,
     X,
-    ClipboardCheck
+    ClipboardCheck,
+    Plus,
+    ShoppingBag,
+    Trash2
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
 
-const SalesRepOrderApproval = () => {
+const SalesRepOrders = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
     
     const [orders, setOrders] = useState([]);
+    const [salesReps, setSalesReps] = useState([]);
+    const [products, setProducts] = useState([]);
+    
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
     
     // Distribute Modal States
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDistributeModalOpen, setIsDistributeModalOpen] = useState(false);
     const [activeOrder, setActiveOrder] = useState(null);
     const [distributeDetails, setDistributeDetails] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
 
+    // Create Modal States
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        SR_ID: '',
+        SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+        details: []
+    });
+
     const perms = currentUser?.permissions?.split(',') || [];
-    const hasPermission = perms.includes('order-manage'); // using order-manage for this
+    const hasPermission = perms.includes('order-manage'); 
 
     const roles = currentUser?.roles?.split(',') || [];
     const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
@@ -42,13 +56,94 @@ const SalesRepOrderApproval = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/sales-rep-orders');
-            setOrders(res.data);
+            const [ordersRes, repsRes, productsRes] = await Promise.all([
+                api.get('/sales-rep-orders'),
+                api.get('/sales-rep'),
+                api.get('/product/items')
+            ]);
+            setOrders(ordersRes.data);
+            setSalesReps(repsRes.data);
+            setProducts(productsRes.data);
         } catch (error) {
             console.error('Fetch Data Error:', error);
-            showNotification(`Failed to load orders: ${error.message}`, 'error');
+            showNotification(`Failed to load data: ${error.message}`, 'error');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleCreateOpen = () => {
+        setFormData({
+            SR_ID: '',
+            SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+            details: []
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const addProductToOrder = (productId) => {
+        const product = products.find(p => p.P_ID === parseInt(productId));
+        if (!product) return;
+        
+        if (formData.details.find(d => d.P_ID === product.P_ID)) {
+            showNotification('Product already added to order', 'error');
+            return;
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            details: [
+                ...prev.details,
+                {
+                    P_ID: product.P_ID,
+                    P_NAME: product.P_NAME,
+                    P_CODE: product.P_CODE,
+                    SROD_REQUESTED_QTY: 1,
+                    C_ID: null
+                }
+            ]
+        }));
+    };
+
+    const updateProductQty = (productId, qty) => {
+        setFormData(prev => ({
+            ...prev,
+            details: prev.details.map(d => 
+                d.P_ID === productId ? { ...d, SROD_REQUESTED_QTY: qty } : d
+            )
+        }));
+    };
+
+    const removeProduct = (productId) => {
+        setFormData(prev => ({
+            ...prev,
+            details: prev.details.filter(d => d.P_ID !== productId)
+        }));
+    };
+
+    const handleCreateSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!formData.SR_ID) {
+            showNotification('Please select a Sales Representative', 'error');
+            return;
+        }
+        
+        if (formData.details.length === 0) {
+            showNotification('Please add at least one product', 'error');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await api.post('/sales-rep-orders', formData);
+            showNotification('Order request created successfully', 'success');
+            await fetchData();
+            setIsCreateModalOpen(false);
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Failed to create order', 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -59,9 +154,9 @@ const SalesRepOrderApproval = () => {
             // Default distributed qty to requested qty
             setDistributeDetails(res.data.details.map(d => ({
                 ...d,
-                SROD_DISTRIBUTED_QTY: d.SROD_REQUESTED_QTY
+                SROD_DISTRIBUTED_QTY: d.SROD_DISTRIBUTED_QTY !== null ? d.SROD_DISTRIBUTED_QTY : d.SROD_REQUESTED_QTY
             })));
-            setIsModalOpen(true);
+            setIsDistributeModalOpen(true);
         } catch (error) {
             showNotification('Failed to fetch order details', 'error');
         }
@@ -86,7 +181,7 @@ const SalesRepOrderApproval = () => {
             });
             showNotification('Order approved and distributed successfully', 'success');
             await fetchData();
-            setIsModalOpen(false);
+            setIsDistributeModalOpen(false);
         } catch (error) {
             showNotification(error.response?.data?.message || 'Failed to approve order', 'error');
         } finally {
@@ -103,7 +198,7 @@ const SalesRepOrderApproval = () => {
             });
             showNotification('Order rejected', 'success');
             await fetchData();
-            setIsModalOpen(false);
+            setIsDistributeModalOpen(false);
         } catch (error) {
             showNotification('Failed to reject order', 'error');
         } finally {
@@ -139,8 +234,17 @@ const SalesRepOrderApproval = () => {
         <div className="p-4 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Bakery Distribution</h1>
-                    <p className="text-slate-600 dark:text-[#94a3b8]">Review, adjust, and distribute products to Sales Reps.</p>
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">Sales Rep Orders & Distribution</h1>
+                    <p className="text-slate-600 dark:text-[#94a3b8]">Create requests and distribute products to Sales Reps.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleCreateOpen}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-blue-600/20 transition-all font-semibold"
+                    >
+                        <Plus className="w-5 h-5" />
+                        <span>New Request</span>
+                    </button>
                 </div>
             </div>
 
@@ -209,7 +313,7 @@ const SalesRepOrderApproval = () => {
                                                 onClick={() => openDistributeModal(order.SROH_ID)} 
                                                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors ml-auto"
                                             >
-                                                View
+                                                View Details
                                             </button>
                                         )}
                                     </td>
@@ -244,18 +348,127 @@ const SalesRepOrderApproval = () => {
                 </div>
             )}
 
-            {/* Distribute Modal */}
+            {/* Create Modal */}
             <AnimatePresence>
-                {isModalOpen && activeOrder && (
+                {isCreateModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)} />
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-4xl bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
                             <div className="p-6 border-b border-slate-200 dark:border-[#334155] flex justify-between items-center bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-t-3xl">
                                 <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
-                                    <Truck className="w-5 h-5 mr-2 text-indigo-500" />
-                                    {activeOrder.SROH_STATUS === 0 ? 'Distribute Order' : 'Order Details'} #{activeOrder.SROH_ID}
+                                    <ShoppingBag className="w-5 h-5 mr-2 text-blue-500" />
+                                    New Order Request
                                 </h3>
-                                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                                <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            
+                            <form onSubmit={handleCreateSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sales Representative *</label>
+                                        <select required value={formData.SR_ID} onChange={e => setFormData({...formData, SR_ID: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium">
+                                            <option value="">Select a Rep...</option>
+                                            {salesReps.map(sr => (
+                                                <option key={sr.SR_ID} value={sr.SR_ID}>{sr.SR_NAME}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Order For Date *</label>
+                                        <input type="date" required value={formData.SROH_ORDER_FOR_DATE} onChange={e => setFormData({...formData, SROH_ORDER_FOR_DATE: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-2">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Add Product</label>
+                                            <select 
+                                                className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                                onChange={(e) => {
+                                                    if(e.target.value) {
+                                                        addProductToOrder(e.target.value);
+                                                        e.target.value = '';
+                                                    }
+                                                }}
+                                            >
+                                                <option value="">Select a product to add...</option>
+                                                {products.map(p => (
+                                                    <option key={p.P_ID} value={p.P_ID}>{p.P_NAME} ({p.P_CODE})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {formData.details.length > 0 && (
+                                        <div className="border border-slate-200 dark:border-[#334155] rounded-xl overflow-hidden">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-slate-50 dark:bg-[#0f172a]">
+                                                    <tr className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                                                        <th className="px-4 py-3">Product Name</th>
+                                                        <th className="px-4 py-3 w-32">Req. Qty</th>
+                                                        <th className="px-4 py-3 w-16"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                                                    {formData.details.map(item => (
+                                                        <tr key={item.P_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-800 dark:text-white">{item.P_NAME}</div>
+                                                                <div className="text-xs text-slate-500">{item.P_CODE}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <input 
+                                                                    type="number" 
+                                                                    min="1"
+                                                                    value={item.SROD_REQUESTED_QTY}
+                                                                    onChange={(e) => updateProductQty(item.P_ID, e.target.value)}
+                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-center font-bold text-slate-700 dark:text-white"
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <button type="button" onClick={() => removeProduct(item.P_ID)} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </form>
+                            
+                            <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-end gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
+                                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                                <button type="submit" disabled={isSaving || formData.details.length === 0} onClick={handleCreateSubmit} className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all flex items-center disabled:opacity-50">
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                    Submit Request
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Distribute/View Modal */}
+            <AnimatePresence>
+                {isDistributeModalOpen && activeOrder && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsDistributeModalOpen(false)} />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-4xl bg-white dark:bg-[#1e293b] rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                            <div className="p-6 border-b border-slate-200 dark:border-[#334155] flex justify-between items-center bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-t-3xl">
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center">
+                                    {activeOrder.SROH_STATUS === 0 ? (
+                                        <><Truck className="w-5 h-5 mr-2 text-indigo-500" />Distribute Order #{activeOrder.SROH_ID}</>
+                                    ) : (
+                                        <><FileText className="w-5 h-5 mr-2 text-blue-500" />Order #{activeOrder.SROH_ID} Details</>
+                                    )}
+                                </h3>
+                                <button onClick={() => setIsDistributeModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
@@ -302,7 +515,7 @@ const SalesRepOrderApproval = () => {
                                                             />
                                                         ) : (
                                                             <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">
-                                                                {item.SROD_DISTRIBUTED_QTY}
+                                                                {item.SROD_DISTRIBUTED_QTY !== null ? item.SROD_DISTRIBUTED_QTY : item.SROD_REQUESTED_QTY}
                                                             </span>
                                                         )}
                                                     </td>
@@ -319,7 +532,7 @@ const SalesRepOrderApproval = () => {
                                         Reject Request
                                     </button>
                                     <div className="flex gap-3">
-                                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                                        <button type="button" onClick={() => setIsDistributeModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                                         <button type="button" onClick={handleApprove} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all flex items-center">
                                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                                             Approve & Distribute
@@ -328,7 +541,7 @@ const SalesRepOrderApproval = () => {
                                 </div>
                             ) : (
                                 <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-end gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Close</button>
+                                    <button type="button" onClick={() => setIsDistributeModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Close</button>
                                 </div>
                             )}
                         </motion.div>
@@ -339,4 +552,4 @@ const SalesRepOrderApproval = () => {
     );
 };
 
-export default SalesRepOrderApproval;
+export default SalesRepOrders;

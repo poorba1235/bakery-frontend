@@ -24,8 +24,7 @@ import RawMaterialCategory from './pages/RawMaterialCategory';
 import RawMaterialItem from './pages/RawMaterialItem';
 import WarehouseLocation from './pages/WarehouseLocation';
 import CustomerManagement from './pages/CustomerManagement';
-import SalesRepOrderRequest from './pages/SalesRepOrderRequest';
-import SalesRepOrderApproval from './pages/SalesRepOrderApproval';
+import SalesRepOrders from './pages/SalesRepOrders';
 import SalesRepSettlements from './pages/SalesRepSettlements';
 import SupplierManagement from './pages/SupplierManagement';
 import TaxManagement from './pages/TaxManagement';
@@ -79,18 +78,10 @@ function App() {
                 }
               />
               <Route
-                path="/inventory/sales-rep-requests"
+                path="/inventory/sales-rep-orders"
                 element={
                   <ProtectedLayout>
-                    <SalesRepOrderRequest />
-                  </ProtectedLayout>
-                }
-              />
-              <Route
-                path="/inventory/sales-rep-distribute"
-                element={
-                  <ProtectedLayout>
-                    <SalesRepOrderApproval />
+                    <SalesRepOrders />
                   </ProtectedLayout>
                 }
               />
