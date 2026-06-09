@@ -143,8 +143,8 @@ const SalesRepSettlements = () => {
 
         const originalNetCash = parseFloat(activeSettlement.TOTAL_NET_CASH) || 0;
         const penalty = Math.max(0, currentTotalNetCash - originalNetCash);
-        const actualPaidCash = activeSettlement.STATUS === 1 
-            ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0 
+        const actualPaidCash = activeSettlement.STATUS === 1
+            ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0
             : (parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0) + penalty;
 
         const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
@@ -230,12 +230,15 @@ const SalesRepSettlements = () => {
                         <div class="summary-row"><span>Total Loaded Qty:</span> <span>${totalLoaded}</span></div>
                         <div class="summary-row"><span>Total Return Qty:</span> <span>${totalUnsold}</span></div>
                         <div class="summary-row" style="margin-bottom: 20px;"><span>Total Given Credit:</span> <span>Rs. ${(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</span></div>
+                        <div class="summary-row" style="color: #6b21a8;"><span>Debt Collected:</span> <span>Rs. ${(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</span></div>
+
                         
                         <div class="summary-row bold"><span>Gross Value:</span> <span>Rs. ${grossCash.toFixed(2)}</span></div>
                         <div class="summary-row deduction"><span>Global Discount:</span> <span>- Rs. ${dayDiscount.toFixed(2)}</span></div>
                         <div class="summary-row bold" style="border-top:1px dotted #ccc; padding-top:5px;"><span>Net Value:</span> <span>Rs. ${currentTotalNetCash.toFixed(2)}</span></div>
                         
                         <div class="summary-row" style="margin-top: 15px;"><span>Total Actual Cash:</span> <span>Rs. ${actualPaidCash.toFixed(2)}</span></div>
+
                         <div class="summary-row deduction"><span>Commission (${commissionPercent}%):</span> <span>- Rs. ${currentCommission.toFixed(2)}</span></div>
                         
                         <div class="summary-row total"><span>FINAL HANDOVER:</span> <span>Rs. ${currentHandover.toFixed(2)}</span></div>
@@ -337,7 +340,7 @@ const SalesRepSettlements = () => {
                                 <th className="px-6 py-4">Sales Rep</th>
                                 <th className="px-6 py-4">Date</th>
                                 <th className="px-6 py-4">Total Value</th>
-                        
+
                                 <th className="px-6 py-4">Cash (Paid)</th>
                                 <th className="px-6 py-4">Credit</th>
                                 <th className="px-6 py-4">Comm.</th>
@@ -368,7 +371,7 @@ const SalesRepSettlements = () => {
                                     <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">
                                         Rs. {parseFloat(s.TOTAL_NET_CASH).toFixed(2)}
                                     </td>
-                                   
+
                                     <td className="px-6 py-4 font-mono font-bold text-blue-600 dark:text-blue-400">
                                         Rs. {parseFloat(s.TOTAL_PAID_CASH || 0).toFixed(2)}
                                     </td>
@@ -531,8 +534,8 @@ const SalesRepSettlements = () => {
 
                                     const originalNetCash = parseFloat(activeSettlement.TOTAL_NET_CASH) || 0;
                                     const penalty = Math.max(0, currentTotalNetCash - originalNetCash);
-                                    const actualPaidCash = activeSettlement.STATUS === 1 
-                                        ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0 
+                                    const actualPaidCash = activeSettlement.STATUS === 1
+                                        ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0
                                         : (parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0) + penalty;
 
                                     const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
@@ -551,7 +554,7 @@ const SalesRepSettlements = () => {
                                                     <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                                                 <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
                                                     <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
                                                     <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
@@ -559,6 +562,10 @@ const SalesRepSettlements = () => {
                                                 <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
                                                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Actual Cash</div>
                                                     <div className="text-xl font-black text-slate-800 dark:text-white font-mono">Rs. {actualPaidCash.toFixed(2)}</div>
+                                                </div>
+                                                <div className="bg-purple-50 dark:bg-purple-500/10 p-4 rounded-2xl border border-purple-200 dark:border-purple-500/20">
+                                                    <div className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-1">Debt Collected</div>
+                                                    <div className="text-xl font-black text-purple-700 dark:text-purple-300 font-mono">Rs. {(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</div>
                                                 </div>
                                                 <div className="bg-rose-50 dark:bg-rose-500/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-500/20">
                                                     <div className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Global Discounts</div>
