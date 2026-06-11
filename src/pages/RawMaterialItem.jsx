@@ -1,12 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Edit2, FlaskConical, Loader2, Package, Plus, Ruler, Save, Search, Trash2, X } from 'lucide-react';
+import { Edit2, FlaskConical, Loader2, Package, Plus, Ruler, Save, Search, Trash2, X, FilePlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import SearchableSelect from '../components/SearchableSelect';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
 
-const RawMaterialItem = () => {
+const RawMaterialItem = ({ onAddGrn }) => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
     const [materials, setMaterials] = useState([]);
@@ -273,6 +273,15 @@ const RawMaterialItem = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-2">
+                                            {onAddGrn && (
+                                                <button
+                                                    onClick={() => onAddGrn(item)}
+                                                    className="p-3 text-emerald-500 hover:bg-emerald-500/10 rounded-2xl transition-all shadow-sm"
+                                                    title="Create GRN"
+                                                >
+                                                    <FilePlus className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { setViewingStock(item); fetchStock(item.RM_ID); }}
                                                 className="p-3 text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all shadow-sm"

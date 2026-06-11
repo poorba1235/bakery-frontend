@@ -21,6 +21,7 @@ import SearchableSelect from '../components/SearchableSelect';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
+import RawMaterialItem from './RawMaterialItem';
 
 const GRNManagement = () => {
     const { user: currentUser } = useAuth();
@@ -491,6 +492,29 @@ const GRNManagement = () => {
         }
     };
 
+    const handleAddGrnFromMaterial = (material) => {
+        setNewGRN({
+            TH_SEQ_NO: '',
+            TH_REFERENCE: '',
+            TH_DATE: formatDateForInput(new Date()),
+            TH_SUPPLIER_ID: '',
+            TH_TOTAL_COST_AMOUNT_LCY: 0,
+            items: []
+        });
+        setNewItem({
+            TD_MATERIAL_ID: material.RM_ID.toString(),
+            TD_QTY: '',
+            TD_COST_PRICE_LCY: '',
+            TD_EXP_DATE: '',
+            TD_MANUFACTURE_DATE: '',
+            L_ID: getDefaultLocationId()
+        });
+        setEditingGRNId(null);
+        setEditingItemId(null);
+        setActiveTab('active');
+        setIsAddModalOpen(true);
+    };
+
     const filteredGRNs = grns
         .filter(g => {
             const matchesSearch =
@@ -596,21 +620,33 @@ const GRNManagement = () => {
                         >
                             Processed History ({grns.filter(g => parseInt(g.TH_STATUS) === 2).length})
                         </button>
+                        <button
+                            onClick={() => setActiveTab('raw-materials')}
+                            className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'raw-materials' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                        >
+                            Raw Materials
+                        </button>
                     </div>
 
-                    <div className="relative group flex-1 md:max-w-md">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder={`Search ${activeTab === 'active' ? 'active' : 'historical'} records...`}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-6 py-4 bg-transparent outline-none text-sm font-bold placeholder:text-slate-400"
-                        />
-                    </div>
+                    {activeTab !== 'raw-materials' && (
+                        <div className="relative group flex-1 md:max-w-md">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={`Search ${activeTab === 'active' ? 'active' : 'historical'} records...`}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-11 pr-6 py-4 bg-transparent outline-none text-sm font-bold placeholder:text-slate-400"
+                            />
+                        </div>
+                    )}
                 </div>
 
-                <div className="overflow-x-auto">
+                {activeTab === 'raw-materials' ? (
+                    <RawMaterialItem onAddGrn={handleAddGrnFromMaterial} />
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 text-slate-500 dark:text-[#94a3b8] text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-[#334155]">
@@ -743,6 +779,8 @@ const GRNManagement = () => {
                             </button>
                         </div>
                     </div>
+                )}
+                </>
                 )}
             </div>
 
