@@ -49,42 +49,42 @@ const formatQuantityAndUnit = (qty, unit) => {
 
     if (lowerUnit === 'kg') {
         if (numQty < 1 && numQty >= 0.001) {
-            return `${(numQty * 1000).toFixed(2)} g`;
+            return `${(numQty * 1000).toFixed(3)} g`;
         } else if (numQty < 0.001 && numQty > 0) {
-            return `${(numQty * 1000000).toFixed(2)} mg`;
+            return `${(numQty * 1000000).toFixed(3)} mg`;
         }
     }
-    
+
     if (lowerUnit === 'g') {
         if (numQty >= 1000) {
-            return `${(numQty / 1000).toFixed(2)} kg`;
+            return `${(numQty / 1000).toFixed(3)} kg`;
         } else if (numQty < 1 && numQty > 0) {
-            return `${(numQty * 1000).toFixed(2)} mg`;
+            return `${(numQty * 1000).toFixed(3)} mg`;
         }
     }
-    
+
     if (lowerUnit === 'mg') {
         if (numQty >= 1000000) {
-            return `${(numQty / 1000000).toFixed(2)} kg`;
+            return `${(numQty / 1000000).toFixed(3)} kg`;
         } else if (numQty >= 1000) {
-            return `${(numQty / 1000).toFixed(2)} g`;
+            return `${(numQty / 1000).toFixed(3)} g`;
         }
     }
 
     if (lowerUnit === 'l') {
         if (numQty < 1 && numQty >= 0.001) {
-            return `${(numQty * 1000).toFixed(2)} ml`;
+            return `${(numQty * 1000).toFixed(3)} ml`;
         }
     }
-    
+
     if (lowerUnit === 'ml') {
         if (numQty >= 1000) {
-            return `${(numQty / 1000).toFixed(2)} l`;
+            return `${(numQty / 1000).toFixed(3)} l`;
         }
     }
-    
+
     const isDecimalUnit = ['kg', 'l', 'g', 'ml', 'mg'].includes(lowerUnit);
-    const formattedQty = isDecimalUnit ? numQty.toFixed(2) : Math.round(numQty).toString();
+    const formattedQty = isDecimalUnit ? numQty.toFixed(3) : Math.round(numQty).toString();
     return `${formattedQty} ${unit || ''}`.trim();
 };
 
