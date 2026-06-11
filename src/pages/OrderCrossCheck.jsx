@@ -142,7 +142,7 @@ const OrderCrossCheck = () => {
     // Handle single input quantity change
     const handleQtyChange = (index, value) => {
         const updated = [...selectedOrderItems];
-        updated[index].OCD_ENTERED_QTY = parseFloat(value) || 0;
+        updated[index].OCD_ENTERED_QTY = value === '' ? '' : (parseFloat(value) || 0);
         setSelectedOrderItems(updated);
     };
 
@@ -598,12 +598,14 @@ const OrderCrossCheck = () => {
                                                                 </td>
                                                                 <td className="px-6 py-4 text-center">
                                                                     <input
-                                                                        type="number"
-                                                                        min="0"
+                                                                        type="text"
+                                                                        inputMode="decimal"
                                                                         required
-                                                                        step="any"
                                                                         value={item.OCD_ENTERED_QTY}
-                                                                        onChange={(e) => handleQtyChange(index, e.target.value)}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                            handleQtyChange(index, val);
+                                                                        }}
                                                                         className="w-32 bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-lg py-2 px-3 text-center text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                                                     />
                                                                 </td>

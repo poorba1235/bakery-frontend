@@ -69,44 +69,57 @@ const SalesRepSettlements = () => {
     };
 
     const updateQty = (detailId, field, value) => {
-        const val = parseFloat(value) || 0;
+        const val = value === '' ? '' : (parseFloat(value) || 0);
         setSettlementDetails(prev => prev.map(d => {
             if (d.P_ID === detailId) {
                 if (field === 'SOLD_QTY') {
-                    // Validate: Cannot decrease below original invoiced amount
-                    if (val < (d._originalSold || 0)) {
-                        showNotification(`Cannot decrease Sold Qty below the invoiced amount (${d._originalSold})`, 'error');
-                        return d; // Cancel update
-                    }
+                    const updated = { ...d, [field]: value };
 
-                    const updated = { ...d, [field]: val };
-
-                    // Correct formula including LOADED_QTY, OLD_QTY, and FREE_QTY
+                    const numVal = value === '' ? 0 : val;
                     const loaded = parseFloat(d.LOADED_QTY) || 0;
                     const old = parseFloat(d.OLD_QTY) || 0;
                     const free = parseFloat(d.FREE_QTY) || 0;
-                    updated.UNSOLD_QTY = Math.max(0, loaded + old - val - free);
+                    updated.UNSOLD_QTY = Math.max(0, loaded + old - numVal - free);
 
-                    // Calculate price: Original Invoiced Cash + (Added Qty * Selling Price)
                     const originalSold = parseFloat(d._originalSold) || 0;
                     const originalCash = parseFloat(d._originalCash) || 0;
                     const basePrice = parseFloat(d.UNIT_PRICE) || 0;
 
-                    const addedQty = val - originalSold;
+                    const addedQty = numVal - originalSold;
 
                     if (addedQty >= 0) {
                         updated.LINE_NET_CASH = originalCash + (addedQty * basePrice);
+                    } else {
+                        updated.LINE_NET_CASH = originalCash;
                     }
 
                     return updated;
                 }
-                return { ...d, [field]: val };
+                return { ...d, [field]: value };
             }
             return d;
         }));
     };
 
+    const handleQtyBlur = (item) => {
+        const currentSold = parseFloat(item.SOLD_QTY) || 0;
+        const originalSold = parseFloat(item._originalSold) || 0;
+        if (currentSold < originalSold) {
+            showNotification(`Cannot decrease Sold Qty below the invoiced amount (${originalSold})`, 'error');
+            updateQty(item.P_ID, 'SOLD_QTY', originalSold.toString());
+        }
+    };
+
     const handleSave = async (statusVal) => {
+        for (const d of settlementDetails) {
+            const currentSold = parseFloat(d.SOLD_QTY) || 0;
+            const originalSold = parseFloat(d._originalSold) || 0;
+            if (currentSold < originalSold) {
+                showNotification(`Cannot save: Sold Qty for ${d.P_NAME} is below the invoiced amount (${originalSold})`, 'error');
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
             await api.put(`/sales-rep-settlements/${activeSettlement.SETTLE_ID}`, {
@@ -485,6 +498,7 @@ const SalesRepSettlements = () => {
                                                                 min="0"
                                                                 value={item.SOLD_QTY}
                                                                 onChange={(e) => updateQty(item.P_ID, 'SOLD_QTY', e.target.value)}
+                                                                onBlur={() => handleQtyBlur(item)}
                                                                 className="w-20 bg-white dark:bg-[#1e293b] border border-blue-300 dark:border-blue-500/50 rounded-lg py-1 px-2 text-center font-bold focus:ring-2 focus:ring-blue-500 text-blue-700 dark:text-blue-400"
                                                             />
                                                         ) : (

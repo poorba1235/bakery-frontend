@@ -863,27 +863,29 @@ const GRNManagement = () => {
                                                         {enterAsPackets ? 'Total Quantity' : 'Quantity'} {selectedMaterial ? `(${selectedMaterial.RM_UNIT})` : ''}
                                                     </label>
                                                     <input
-                                                        type="number"
-                                                        min="0.01"
-                                                        step="any"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         disabled={enterAsPackets}
                                                         placeholder="0.00"
                                                         value={newItem.TD_QTY}
-                                                        onChange={(e) => setNewItem({ ...newItem, TD_QTY: e.target.value })}
-                                                        onKeyDown={handleNumericKeyDown}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                            setNewItem({ ...newItem, TD_QTY: val });
+                                                        }}
                                                         className={`w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all ${enterAsPackets ? 'opacity-70 bg-slate-50 dark:bg-slate-850 font-bold cursor-not-allowed text-blue-600 dark:text-blue-400' : ''}`}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Unit Cost (LKR)</label>
                                                     <input
-                                                        type="number"
-                                                        min="0.01"
-                                                        step="any"
+                                                        type="text"
+                                                        inputMode="decimal"
                                                         placeholder="0.00"
                                                         value={newItem.TD_COST_PRICE_LCY}
-                                                        onChange={(e) => setNewItem({ ...newItem, TD_COST_PRICE_LCY: e.target.value })}
-                                                        onKeyDown={handleNumericKeyDown}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                            setNewItem({ ...newItem, TD_COST_PRICE_LCY: val });
+                                                        }}
                                                         className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50"
                                                     />
                                                 </div>
@@ -923,14 +925,14 @@ const GRNManagement = () => {
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Number of Packets / Bags</label>
                                                         <input
-                                                            type="number"
-                                                            min="1"
-                                                            step="1"
+                                                            type="text"
+                                                            inputMode="numeric"
                                                             placeholder="e.g. 5"
                                                             value={packetCount}
                                                             onChange={(e) => {
-                                                                setPacketCount(e.target.value);
-                                                                const count = parseInt(e.target.value) || 0;
+                                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                setPacketCount(val);
+                                                                const count = parseInt(val) || 0;
                                                                 const size = parseFloat(packetSize) || 0;
                                                                 setNewItem(prev => ({ ...prev, TD_QTY: (count * size > 0) ? (count * size).toString() : '' }));
                                                             }}
@@ -940,14 +942,14 @@ const GRNManagement = () => {
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Quantity per Packet / Bag {selectedMaterial ? `(${selectedMaterial.RM_UNIT})` : ''}</label>
                                                         <input
-                                                            type="number"
-                                                            min="0.01"
-                                                            step="any"
+                                                            type="text"
+                                                            inputMode="decimal"
                                                             placeholder="e.g. 25"
                                                             value={packetSize}
                                                             onChange={(e) => {
-                                                                setPacketSize(e.target.value);
-                                                                const size = parseFloat(e.target.value) || 0;
+                                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                setPacketSize(val);
+                                                                const size = parseFloat(val) || 0;
                                                                 const count = parseInt(packetCount) || 0;
                                                                 setNewItem(prev => ({ ...prev, TD_QTY: (count * size > 0) ? (count * size).toString() : '' }));
                                                             }}
@@ -1003,6 +1005,7 @@ const GRNManagement = () => {
                                         <table className="w-full text-left">
                                             <thead className="bg-slate-50 dark:bg-[#0f172a]/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                                 <tr>
+                                                    <th className="px-6 py-4 w-12 text-center">#</th>
                                                     <th className="px-6 py-4">Item Detail</th>
                                                     <th className="px-6 py-4">Quantity</th>
                                                     <th className="px-6 py-4">Dates (MFG/EXP)</th>
@@ -1014,9 +1017,10 @@ const GRNManagement = () => {
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 dark:divide-[#334155]">
                                                 {newGRN.items.length === 0 ? (
-                                                    <tr><td colSpan="7" className="px-6 py-10 text-center text-slate-400 italic text-sm">No items added to this shipment yet.</td></tr>
-                                                ) : newGRN.items.map(item => (
+                                                    <tr><td colSpan="8" className="px-6 py-10 text-center text-slate-400 italic text-sm">No items added to this shipment yet.</td></tr>
+                                                ) : newGRN.items.map((item, index) => (
                                                     <tr key={item.id} className="text-sm">
+                                                        <td className="px-6 py-4 text-center font-black text-slate-300 dark:text-slate-600">{index + 1}</td>
                                                         <td className="px-6 py-4">
                                                             <div className="font-bold text-slate-800 dark:text-white">{item.material_name}</div>
                                                             <div className="text-blue-500 font-bold text-[11px] mb-1">{item.material_name_sinhala}</div>
@@ -1048,7 +1052,10 @@ const GRNManagement = () => {
                                             {newGRN.items.length > 0 && (
                                                 <tfoot className="bg-slate-50/50 dark:bg-[#0f172a]/30">
                                                     <tr className="font-black text-slate-800 dark:text-white border-t border-slate-200 dark:border-[#334155]">
-                                                        <td colSpan="5" className="px-6 py-6 text-right uppercase tracking-[0.2em] text-xs">Gross Total Amount</td>
+                                                        <td colSpan="2" className="px-6 py-6 text-left uppercase tracking-[0.2em] text-xs text-blue-600 dark:text-blue-400">
+                                                            Total Items Added: {newGRN.items.length}
+                                                        </td>
+                                                        <td colSpan="4" className="px-6 py-6 text-right uppercase tracking-[0.2em] text-xs">Gross Total Amount</td>
                                                         <td className="px-6 py-6 text-xl">LKR {newGRN.TH_TOTAL_COST_AMOUNT_LCY.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                                         <td></td>
                                                     </tr>

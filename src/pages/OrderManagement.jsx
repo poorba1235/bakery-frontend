@@ -952,14 +952,13 @@ const OrderManagement = () => {
                                                                         <td className="px-6 py-4.5">
                                                                             <div className="flex flex-col">
                                                                                 <input
-                                                                                    type="number"
+                                                                                    type="text"
+                                                                                    inputMode="decimal"
                                                                                     disabled={!isChecked}
                                                                                     placeholder="0.00"
-                                                                                    min="0"
-                                                                                    step="any"
                                                                                     value={row.OD_QTY || ''}
                                                                                     onChange={(e) => {
-                                                                                        const val = e.target.value;
+                                                                                        const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                         setShortageProductIds(prev => prev.filter(id => id !== p.P_ID));
                                                                                         setShortageRecipeProductIds(prev => prev.filter(id => id !== p.P_ID));
                                                                                         setShortageBagProductIds(prev => prev.filter(id => id !== p.P_ID));
@@ -987,14 +986,13 @@ const OrderManagement = () => {
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Selling</span>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
                                                                                         disabled={!isChecked}
                                                                                         placeholder="Selling"
-                                                                                        min="0"
-                                                                                        step="any"
                                                                                         value={row.OD_UNIT_SELLING_PRICE || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SELLING_PRICE: val }
@@ -1006,14 +1004,13 @@ const OrderManagement = () => {
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Shop</span>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
                                                                                         disabled={!isChecked}
                                                                                         placeholder="Shop"
-                                                                                        min="0"
-                                                                                        step="any"
                                                                                         value={row.OD_UNIT_SHOP_PRICE || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SHOP_PRICE: val }
@@ -1025,14 +1022,13 @@ const OrderManagement = () => {
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Limit</span>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
                                                                                         disabled={!isChecked}
                                                                                         placeholder="Limit"
-                                                                                        min="0"
-                                                                                        step="any"
                                                                                         value={row.OD_UNIT_LIMIT_PRICE || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_LIMIT_PRICE: val }
@@ -1050,14 +1046,13 @@ const OrderManagement = () => {
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-14">R.Sale</span>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
                                                                                         disabled={!isChecked}
                                                                                         placeholder="0.00"
-                                                                                        min="0"
-                                                                                        step="any"
                                                                                         value={row.OD_UNIT_SALE_PRICE || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SALE_PRICE: val }
@@ -1069,14 +1064,13 @@ const OrderManagement = () => {
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-14">W.Sale</span>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
                                                                                         disabled={!isChecked}
                                                                                         placeholder="0.00"
-                                                                                        min="0"
-                                                                                        step="any"
                                                                                         value={row.OD_UNIT_WHOLE_SALE_PRICE || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_WHOLE_SALE_PRICE: val }
@@ -1188,12 +1182,12 @@ const OrderManagement = () => {
                                                                                         ))}
                                                                                     </select>
                                                                                     <input
-                                                                                        type="number"
+                                                                                        type="text"
+                                                                                        inputMode="numeric"
                                                                                         placeholder="Bag Qty"
-                                                                                        min="1"
                                                                                         value={row.BAG_QTY || ''}
                                                                                         onChange={(e) => {
-                                                                                            const val = e.target.value;
+                                                                                            const val = e.target.value.replace(/[^0-9]/g, '');
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], BAG_QTY: val }
@@ -1974,15 +1968,13 @@ const OrderManagement = () => {
                                                             <div className="flex items-center bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-blue-500 transition-all w-full">
                                                                 <span className="text-[10px] font-black text-slate-400 uppercase mr-2 whitespace-nowrap">Qty:</span>
                                                                 <input
-                                                                    type="number"
-                                                                    step="any"
-                                                                    max={batch.original_quantity}
-                                                                    min="0"
-                                                                    onKeyDown={preventMinus}
+                                                                    type="text"
+                                                                    inputMode="decimal"
                                                                     className="w-20 bg-transparent text-sm font-black text-blue-600 dark:text-blue-400 outline-none text-right"
                                                                     value={batch.print_quantity}
                                                                     onChange={(e) => {
-                                                                        const val = parseFloat(e.target.value) || 0;
+                                                                        const rawVal = e.target.value.replace(/[^0-9.]/g, '');
+                                                                        const val = parseFloat(rawVal) || 0;
                                                                         const max = batch.original_quantity;
                                                                         if (val >= 0 && val <= max) {
                                                                             const newBatches = [...batchesToPrint];
