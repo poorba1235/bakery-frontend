@@ -155,7 +155,7 @@ const GRNManagement = () => {
     const handleAddItem = () => {
         const { TD_MATERIAL_ID, TD_QTY, TD_COST_PRICE_LCY, L_ID, TD_EXP_DATE, TD_MANUFACTURE_DATE } = newItem;
 
-        const isPackaging = selectedMaterial?.RM_MATERIAL_TYPE === 'Packaging';
+        const isDateExempt = selectedMaterial?.RM_MATERIAL_TYPE === 'Packaging' || selectedMaterial?.RM_MATERIAL_TYPE === 'Chemical';
 
         // 1. Check Supplier is selected first
         if (!newGRN.TH_SUPPLIER_ID) {
@@ -195,8 +195,8 @@ const GRNManagement = () => {
             return;
         }
 
-        // 6. Check Dates for non-packaging items
-        if (!isPackaging) {
+        // 6. Check Dates for non-exempt items
+        if (!isDateExempt) {
             if (!TD_MANUFACTURE_DATE) {
                 showNotification('Manufacture Date is required', 'error');
                 return;
@@ -207,7 +207,7 @@ const GRNManagement = () => {
             }
         }
 
-        if (!isPackaging) {
+        if (!isDateExempt) {
             const todayStr = formatDateForInput(new Date());
             const mfgDateStr = TD_MANUFACTURE_DATE;
             const expDateStr = TD_EXP_DATE;
@@ -236,8 +236,8 @@ const GRNManagement = () => {
 
         const itemData = {
             ...newItem,
-            TD_EXP_DATE: isPackaging ? (TD_EXP_DATE || '') : TD_EXP_DATE,
-            TD_MANUFACTURE_DATE: isPackaging ? (TD_MANUFACTURE_DATE || '') : TD_MANUFACTURE_DATE,
+            TD_EXP_DATE: isDateExempt ? (TD_EXP_DATE || '') : TD_EXP_DATE,
+            TD_MANUFACTURE_DATE: isDateExempt ? (TD_MANUFACTURE_DATE || '') : TD_MANUFACTURE_DATE,
             TD_UNIT: material?.RM_UNIT || 'Unit',
             material_name: material?.RM_NAME,
             material_name_sinhala: material?.RM_NAME_SINHALA,
@@ -337,15 +337,15 @@ const GRNManagement = () => {
 
         setIsSaving(true);
         try {
-            // Determine if any item is of Packaging type
-            const hasPackaging = newGRN.items.some(item => {
+            // Determine if any item is of Packaging or Chemical type (Date Exempt)
+            const hasExemptItems = newGRN.items.some(item => {
                 const material = rawMaterials.find(m => m.RM_ID === parseInt(item.TD_MATERIAL_ID));
-                return material?.RM_MATERIAL_TYPE === 'Packaging';
+                return material?.RM_MATERIAL_TYPE === 'Packaging' || material?.RM_MATERIAL_TYPE === 'Chemical';
             });
 
             const grnPayload = {
                 ...newGRN,
-                TH_TYPE: hasPackaging ? 'Packaging' : 'Standard'
+                TH_TYPE: hasExemptItems ? 'Packaging' : 'Standard'
             };
 
             if (editingGRNId) {
@@ -647,67 +647,67 @@ const GRNManagement = () => {
                 ) : (
                     <>
                         <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 text-slate-500 dark:text-[#94a3b8] text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-[#334155]">
-                                <th className="px-6 py-4">GRN & ID</th>
-                                <th className="px-6 py-4">Supplier</th>
-                                <th className="px-6 py-4">Transaction Info</th>
-                                <th className="px-6 py-4">Financials</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
-                                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
-                                        Loading GRN records...
-                                    </td>
-                                </tr>
-                            ) : filteredGRNs.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">No GRN records found.</td>
-                                </tr>
-                            ) : filteredGRNs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((grn) => (
-                                <tr key={grn.TH_ID} className="hover:bg-slate-50/50 dark:hover:bg-[#1e293b]/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold font-mono">#{grn.TH_ID}</span>
-                                            <div className="text-sm font-mono font-bold text-slate-700 dark:text-white tracking-tighter">GRN-{grn.TH_SEQ_NO}</div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-slate-800 dark:text-white font-bold text-sm tracking-tight">{grn.supplier_name}</div>
-                                        <div className="text-[10px] text-slate-500 font-bold uppercase">SUP-ID: {grn.TH_SUPPLIER_ID}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-white">{new Date(grn.TH_DATE).toLocaleDateString()}</span>
-                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{grn.TH_REFERENCE || 'No Reference'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Amount</span>
-                                            <span className="font-bold text-slate-800 dark:text-white text-sm">LKR {parseFloat(grn.TH_TOTAL_COST_AMOUNT_LCY).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <StatusBadge status={grn.TH_STATUS} />
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                            <button
-                                                onClick={() => handleViewDetails(grn)}
-                                                className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm"
-                                                title="View Full Details"
-                                            >
-                                                <CheckCircle className="w-4 h-4" />
-                                            </button>
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 text-slate-500 dark:text-[#94a3b8] text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-[#334155]">
+                                        <th className="px-6 py-4">GRN & ID</th>
+                                        <th className="px-6 py-4">Supplier</th>
+                                        <th className="px-6 py-4">Transaction Info</th>
+                                        <th className="px-6 py-4">Financials</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                                    {isLoading ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+                                                Loading GRN records...
+                                            </td>
+                                        </tr>
+                                    ) : filteredGRNs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">No GRN records found.</td>
+                                        </tr>
+                                    ) : filteredGRNs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((grn) => (
+                                        <tr key={grn.TH_ID} className="hover:bg-slate-50/50 dark:hover:bg-[#1e293b]/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold font-mono">#{grn.TH_ID}</span>
+                                                    <div className="text-sm font-mono font-bold text-slate-700 dark:text-white tracking-tighter">GRN-{grn.TH_SEQ_NO}</div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-slate-800 dark:text-white font-bold text-sm tracking-tight">{grn.supplier_name}</div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase">SUP-ID: {grn.TH_SUPPLIER_ID}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-white">{new Date(grn.TH_DATE).toLocaleDateString()}</span>
+                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{grn.TH_REFERENCE || 'No Reference'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Amount</span>
+                                                    <span className="font-bold text-slate-800 dark:text-white text-sm">LKR {parseFloat(grn.TH_TOTAL_COST_AMOUNT_LCY).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={grn.TH_STATUS} />
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end space-x-2">
+                                                    <button
+                                                        onClick={() => handleViewDetails(grn)}
+                                                        className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm"
+                                                        title="View Full Details"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" />
+                                                    </button>
 
-                                            {/* {activeTab === 'history' && (
+                                                    {/* {activeTab === 'history' && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -719,68 +719,68 @@ const GRNManagement = () => {
                                                     <Printer className="w-4 h-4" />
                                                 </button>
                                             )} */}
-                                            {(grn.TH_STATUS == 0 || grn.TH_STATUS == 3) && (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleEditGRN(grn)}
-                                                        className="p-3 text-amber-500 hover:bg-amber-500/10 rounded-2xl transition-all shadow-sm"
-                                                        title="Edit GRN"
-                                                    >
-                                                        <FileText className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteGRN(grn.TH_ID)}
-                                                        className="p-3 text-red-500 hover:bg-red-500/10 rounded-2xl transition-all shadow-sm"
-                                                        title="Delete GRN"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                                    {(grn.TH_STATUS == 0 || grn.TH_STATUS == 3) && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleEditGRN(grn)}
+                                                                className="p-3 text-amber-500 hover:bg-amber-500/10 rounded-2xl transition-all shadow-sm"
+                                                                title="Edit GRN"
+                                                            >
+                                                                <FileText className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteGRN(grn.TH_ID)}
+                                                                className="p-3 text-red-500 hover:bg-red-500/10 rounded-2xl transition-all shadow-sm"
+                                                                title="Delete GRN"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                {/* Pagination */}
-                {filteredGRNs.length > itemsPerPage && (
-                    <div className="px-8 py-6 bg-slate-50/50 dark:bg-[#0f172a]/50 border-t border-slate-200 dark:border-[#334155] flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            Showing {Math.min(filteredGRNs.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredGRNs.length, currentPage * itemsPerPage)} of {filteredGRNs.length} records
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <button
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
-                            >
-                                Previous
-                            </button>
-                            <div className="flex items-center space-x-1">
-                                {[...Array(Math.ceil(filteredGRNs.length / itemsPerPage))].map((_, i) => (
+                        {/* Pagination */}
+                        {filteredGRNs.length > itemsPerPage && (
+                            <div className="px-8 py-6 bg-slate-50/50 dark:bg-[#0f172a]/50 border-t border-slate-200 dark:border-[#334155] flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    Showing {Math.min(filteredGRNs.length, (currentPage - 1) * itemsPerPage + 1)} to {Math.min(filteredGRNs.length, currentPage * itemsPerPage)} of {filteredGRNs.length} records
+                                </div>
+                                <div className="flex items-center space-x-2">
                                     <button
-                                        key={i + 1}
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        className={`w-9 h-9 flex items-center justify-center rounded-xl text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
                                     >
-                                        {i + 1}
+                                        Previous
                                     </button>
-                                ))}
+                                    <div className="flex items-center space-x-1">
+                                        {[...Array(Math.ceil(filteredGRNs.length / itemsPerPage))].map((_, i) => (
+                                            <button
+                                                key={i + 1}
+                                                onClick={() => setCurrentPage(i + 1)}
+                                                className={`w-9 h-9 flex items-center justify-center rounded-xl text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        disabled={currentPage === Math.ceil(filteredGRNs.length / itemsPerPage)}
+                                        onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredGRNs.length / itemsPerPage), prev + 1))}
+                                        className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                disabled={currentPage === Math.ceil(filteredGRNs.length / itemsPerPage)}
-                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredGRNs.length / itemsPerPage), prev + 1))}
-                                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
-                )}
-                </>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -957,21 +957,25 @@ const GRNManagement = () => {
                                                 </div>
                                             )}
 
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Manufacture Date</label>
-                                                    <input
-                                                        type="date"
-                                                        max={formatDateForInput(new Date())}
-                                                        value={newItem.TD_MANUFACTURE_DATE}
-                                                        onChange={(e) => setNewItem({ ...newItem, TD_MANUFACTURE_DATE: e.target.value })}
-                                                        className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Expiry Date</label>
-                                                    <input type="date" value={newItem.TD_EXP_DATE} onChange={(e) => setNewItem({ ...newItem, TD_EXP_DATE: e.target.value })} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
-                                                </div>
+                                            <div className={`grid grid-cols-1 ${(selectedMaterial?.RM_MATERIAL_TYPE === 'Packaging' || selectedMaterial?.RM_MATERIAL_TYPE === 'Chemical') ? 'md:grid-cols-2' : 'md:grid-cols-4'} gap-6 items-end`}>
+                                                {(selectedMaterial?.RM_MATERIAL_TYPE !== 'Packaging' && selectedMaterial?.RM_MATERIAL_TYPE !== 'Chemical') && (
+                                                    <>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Manufacture Date</label>
+                                                            <input
+                                                                type="date"
+                                                                max={formatDateForInput(new Date())}
+                                                                value={newItem.TD_MANUFACTURE_DATE}
+                                                                onChange={(e) => setNewItem({ ...newItem, TD_MANUFACTURE_DATE: e.target.value })}
+                                                                className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Expiry Date</label>
+                                                            <input type="date" value={newItem.TD_EXP_DATE} onChange={(e) => setNewItem({ ...newItem, TD_EXP_DATE: e.target.value })} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-3 px-4 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50" />
+                                                        </div>
+                                                    </>
+                                                )}
                                                 <div className="md:col-span-2 flex gap-3">
                                                     <button type="button" onClick={handleAddItem} className={`flex-1 ${editingItemId !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'} py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg`}>
                                                         {editingItemId !== null ? 'Update Item' : 'Add Item to List'}
