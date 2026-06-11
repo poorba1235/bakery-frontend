@@ -15,7 +15,12 @@ import {
     Search,
     ShoppingCart,
     Trash2,
-    X
+    Utensils,
+    Beaker,
+    Clock,
+    Minus,
+    X,
+    ChefHat
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import SearchableSelect from '../components/SearchableSelect';
@@ -41,6 +46,21 @@ const ProductManagement = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    
+    // Recipe Modal States
+    const [rawMaterials, setRawMaterials] = useState([]);
+    const [recipes, setRecipes] = useState([]);
+    const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
+    const [editingRecipe, setEditingRecipe] = useState(null);
+    const [isRecipeSaving, setIsRecipeSaving] = useState(false);
+    const [recipeFormData, setRecipeFormData] = useState({
+        RECH_PRODUCT_ID: '',
+        RECH_MADE_QTY: 1,
+        RECH_PREPARATION_TIME: 0,
+        RECH_REMARKS: '',
+        items: []
+    });
+
     const itemsPerPage = 10;
     const API_URL = api.defaults.baseURL.replace('/api', ''); // Base URL for static files
 
@@ -83,17 +103,21 @@ const ProductManagement = () => {
     const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            const [prodRes, catRes, subRes, unitRes] = await Promise.all([
+            const [prodRes, catRes, subRes, unitRes, rmRes, recipeRes] = await Promise.all([
                 api.get('/product/items'),
                 api.get('/product/categories'),
                 api.get('/product/sub-categories'),
-                api.get('/product/units')
+                api.get('/product/units'),
+                api.get('/raw-material'),
+                api.get('/recipe')
             ]);
             setProducts(prodRes.data);
             setCategories(catRes.data);
             setSubCategories(subRes.data);
             // Ensure Bag/Non Bag are NOT selectable in the dropdown
             setUnits((unitRes.data || []).filter(u => u.value !== 'BAG' && u.value !== 'NOT BAG'));
+            setRawMaterials(rmRes.data);
+            setRecipes(recipeRes.data);
         } catch (error) {
             showNotification('Failed to load product data', 'error');
         } finally {
@@ -199,8 +223,8 @@ const ProductManagement = () => {
 
         // Duplicate Barcode Check (Local Validation)
         if (formData.actual_barcode) {
-            const isDuplicate = products.some(p => 
-                String(p.actual_barcode) === String(formData.actual_barcode) && 
+            const isDuplicate = products.some(p =>
+                String(p.actual_barcode) === String(formData.actual_barcode) &&
                 p.P_ID !== editingProduct?.P_ID
             );
             if (isDuplicate) {
@@ -280,6 +304,198 @@ const ProductManagement = () => {
             }
         }
     };
+    const handleOpenRecipeModal = async (product) => {
+        const recipe = recipes.find(r => r.RECH_PRODUCT_ID === product.P_ID);
+        if (recipe) {
+            setEditingRecipe(recipe);
+            try {
+                const detailsRes = await api.get(`/recipe/${recipe.RECH_ID}/details`);
+                setRecipeFormData({
+                    ...recipe,
+                    items: detailsRes.data.map(d => {
+                        const baseUnit = d.RECD_UNIT;
+                        const qty = Number(d.RECD_QTY);
+                        let displayUnit = baseUnit;
+                        let displayQty = qty;
+
+                        const baseU = String(baseUnit || '').trim().toUpperCase();
+                        if (['KG', 'KGS', 'KGMS'].includes(baseU)) {
+                            if (qty < 0.001 && qty > 0) {
+                                displayUnit = 'mg';
+                                displayQty = qty * 1000000;
+                            } else if (qty < 1 && qty > 0) {
+                                displayUnit = 'g';
+                                displayQty = qty * 1000;
+                            }
+                        } else if (['L', 'LTR', 'LITRE', 'LITRES'].includes(baseU)) {
+                            if (qty < 1 && qty > 0) {
+                                displayUnit = 'ml';
+                                displayQty = qty * 1000;
+                            }
+                        } else if (['G', 'GRAM', 'GRAMS'].includes(baseU)) {
+                            if (qty < 0.001 && qty > 0) {
+                                displayUnit = 'mg';
+                                displayQty = qty * 1000;
+                            }
+                        }
+
+                        return {
+                            RECD_RAW_METERIAL_ID: d.RECD_RAW_METERIAL_ID,
+                            RECD_QTY: qty,
+                            RECD_UNIT: d.RECD_UNIT,
+                            RECD_REMARKS: d.RECD_REMARKS,
+                            displayUnit,
+                            displayQty: displayQty % 1 === 0 ? displayQty.toString() : displayQty.toFixed(3)
+                        };
+                    })
+                });
+            } catch (err) {
+                showNotification('Error loading recipe details', 'error');
+            }
+        } else {
+            setEditingRecipe(null);
+            setRecipeFormData({
+                RECH_PRODUCT_ID: product.P_ID,
+                RECH_MADE_QTY: 1,
+                RECH_PREPARATION_TIME: 30,
+                RECH_REMARKS: '',
+                items: []
+            });
+        }
+        setIsRecipeModalOpen(true);
+    };
+
+    const handleRecipeAddItem = () => {
+        setRecipeFormData(prev => ({
+            ...prev,
+            items: [...prev.items, { RECD_RAW_METERIAL_ID: '', RECD_QTY: 0, RECD_UNIT: '', RECD_REMARKS: '', displayQty: '', displayUnit: '' }]
+        }));
+    };
+
+    const handleRecipeRemoveItem = (index) => {
+        setRecipeFormData(prev => ({
+            ...prev,
+            items: prev.items.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleRecipeItemChange = (index, field, value) => {
+        if (field === 'RECD_RAW_METERIAL_ID' && value) {
+            const isDuplicate = recipeFormData.items.some((item, i) => i !== index && String(item.RECD_RAW_METERIAL_ID) === String(value));
+            if (isDuplicate) {
+                showNotification('This material is already added to the recipe.', 'warning');
+                return;
+            }
+        }
+
+        const newItems = [...recipeFormData.items];
+
+        if (field === 'RECD_RAW_METERIAL_ID') {
+            const material = rawMaterials.find(rm => rm.RM_ID === value);
+            if (material) {
+                newItems[index].RECD_RAW_METERIAL_ID = value;
+                newItems[index].RECD_UNIT = material.RM_UNIT;
+                newItems[index].displayUnit = material.RM_UNIT;
+                newItems[index].displayQty = '';
+                newItems[index].RECD_QTY = 0;
+            }
+        } else if (field === 'displayQty') {
+            newItems[index].displayQty = value;
+            const qtyVal = parseFloat(value) || 0;
+            const dUnit = newItems[index].displayUnit;
+            const bUnit = newItems[index].RECD_UNIT;
+
+            const f = String(dUnit || '').trim().toUpperCase();
+            const b = String(bUnit || '').trim().toUpperCase();
+            const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
+            const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
+            const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+
+            let ratio = 1;
+            if (isBaseKg) {
+                if (f === 'G' || f === 'ML') ratio = 0.001;
+                else if (f === 'MG') ratio = 0.000001;
+            } else if (isBaseL) {
+                if (f === 'G' || f === 'ML') ratio = 0.001;
+                else if (f === 'MG') ratio = 0.000001;
+            } else if (isBaseG) {
+                if (f === 'KG' || f === 'L') ratio = 1000;
+                else if (f === 'MG') ratio = 0.001;
+            }
+            newItems[index].RECD_QTY = qtyVal * ratio;
+        } else if (field === 'displayUnit') {
+            newItems[index].displayUnit = value;
+            const qtyVal = parseFloat(newItems[index].displayQty) || 0;
+            const bUnit = newItems[index].RECD_UNIT;
+
+            const f = String(value || '').trim().toUpperCase();
+            const b = String(bUnit || '').trim().toUpperCase();
+            const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
+            const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
+            const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+
+            let ratio = 1;
+            if (isBaseKg) {
+                if (f === 'G' || f === 'ML') ratio = 0.001;
+                else if (f === 'MG') ratio = 0.000001;
+            } else if (isBaseL) {
+                if (f === 'G' || f === 'ML') ratio = 0.001;
+                else if (f === 'MG') ratio = 0.000001;
+            } else if (isBaseG) {
+                if (f === 'KG' || f === 'L') ratio = 1000;
+                else if (f === 'MG') ratio = 0.001;
+            }
+            newItems[index].RECD_QTY = qtyVal * ratio;
+        } else {
+            newItems[index][field] = value;
+        }
+
+        setRecipeFormData(prev => ({ ...prev, items: newItems }));
+    };
+
+    const handleRecipeSave = async (e) => {
+        e.preventDefault();
+        if (!recipeFormData.RECH_PRODUCT_ID) {
+            showNotification('Product is required', 'warning');
+            return;
+        }
+
+        if (recipeFormData.items.length === 0) {
+            showNotification('At least one ingredient is required', 'warning');
+            return;
+        }
+
+        for (let i = 0; i < recipeFormData.items.length; i++) {
+            const item = recipeFormData.items[i];
+            if (!item.RECD_RAW_METERIAL_ID) {
+                showNotification(`Please select an ingredient for item ${i + 1}`, 'warning');
+                return;
+            }
+            if (!item.RECD_QTY || Number(item.RECD_QTY) <= 0) {
+                showNotification(`Please enter a valid quantity for ${rawMaterials.find(rm => rm.RM_ID === item.RECD_RAW_METERIAL_ID)?.RM_NAME || 'item ' + (i + 1)}`, 'warning');
+                return;
+            }
+        }
+
+        setIsRecipeSaving(true);
+        const finalData = { ...recipeFormData, RECH_MADE_QTY: 1 };
+        try {
+            if (editingRecipe) {
+                await api.put(`/recipe/${editingRecipe.RECH_ID}`, finalData);
+                showNotification('Recipe updated successfully', 'success');
+            } else {
+                await api.post('/recipe', finalData);
+                showNotification('Recipe created successfully', 'success');
+            }
+            setIsRecipeModalOpen(false);
+            fetchInitialData();
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Error saving recipe', 'error');
+        } finally {
+            setIsRecipeSaving(false);
+        }
+    };
+
     const handleView = (product) => {
         setViewingProduct(product);
         setIsViewModalOpen(true);
@@ -384,11 +600,11 @@ const ProductManagement = () => {
                         <thead>
                             <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 text-slate-500 dark:text-[#94a3b8] text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-[#334155]">
                                 <th className="px-8 py-5">Code & ID</th>
-                               
+
                                 <th className="px-8 py-5">Classification</th>
                                 <th className="px-8 py-5">UoM</th>
                                 <th className="px-8 py-5">Packaging</th>
-                                 <th className="px-8 py-5 text-left">Stock Level</th>
+                                <th className="px-8 py-5 text-left">Stock Level</th>
                                 <th className="px-8 py-5">Created By</th>
                                 <th className="px-8 py-5 text-right">Actions</th>
                             </tr>
@@ -419,7 +635,7 @@ const ProductManagement = () => {
                                             <div className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[150px]" title={p.P_NAME}>{p.P_NAME}</div>
                                         </div>
                                     </td>
-                                   
+
                                     <td className="px-8 py-6">
                                         <div className="space-y-2">
                                             <span className="inline-flex px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">{p.category_name}</span>
@@ -472,6 +688,13 @@ const ProductManagement = () => {
                                     </td>
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex items-center justify-end space-x-2">
+                                            <button
+                                                onClick={() => handleOpenRecipeModal(p)}
+                                                className="p-3 text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all shadow-sm"
+                                                title="Recipe / Formula"
+                                            >
+                                                <ChefHat className="w-4 h-4" />
+                                            </button>
                                             <button
                                                 onClick={() => handleView(p)}
                                                 className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm"
@@ -950,6 +1173,200 @@ const ProductManagement = () => {
                     </div>
                 )}
             </AnimatePresence>
+        {/* Recipe Modal */}
+        <AnimatePresence>
+            {isRecipeModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setIsRecipeModalOpen(false)}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                    />
+                    <motion.div
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        className="relative w-full max-w-5xl bg-white dark:bg-[#1e293b] rounded-[2.5rem] border border-slate-300 dark:border-[#334155] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+                    >
+                        {/* Modal Header */}
+                        <div className="px-10 py-8 border-b border-slate-200 dark:border-[#334155] flex items-center justify-between bg-slate-50/50 dark:bg-[#0f172a]/50">
+                            <div className="flex items-center space-x-5">
+                                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-indigo-600/30">
+                                    {editingRecipe ? <Edit2 className="w-7 h-7" /> : <ChefHat className="w-7 h-7" />}
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{editingRecipe ? 'Edit Recipe' : 'New Product Formula'}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-tight">Define exact ingredient ratios and preparation requirements.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsRecipeModalOpen(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm transition-all"><X className="w-6 h-6" /></button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                            <form onSubmit={handleRecipeSave} className="space-y-10">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                    {/* Left Column - Meta Data */}
+                                    <div className="lg:col-span-1 space-y-8">
+                                        <section className="space-y-6">
+                                            <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
+                                                <Info className="w-4 h-4" />
+                                                <span>Target Product</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Finished Good</label>
+                                                <input
+                                                    type="text" readOnly 
+                                                    value={products.find(p => p.P_ID === recipeFormData.RECH_PRODUCT_ID)?.P_NAME || ''}
+                                                    className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-600 dark:text-slate-400 outline-none cursor-not-allowed font-bold"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Yield Qty</label>
+                                                    <input
+                                                        type="number" readOnly value={1}
+                                                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-400 dark:text-slate-500 outline-none cursor-not-allowed font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-amber-500">Prep (Mins)</label>
+                                                    <input
+                                                        type="number" min="0" value={recipeFormData.RECH_PREPARATION_TIME}
+                                                        onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_PREPARATION_TIME: e.target.value })}
+                                                        className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructions / Notes</label>
+                                                    <span className={`text-[10px] font-bold ${(recipeFormData.RECH_REMARKS || '').length >= 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                                        {(recipeFormData.RECH_REMARKS || '').length}/100
+                                                    </span>
+                                                </div>
+                                                <textarea
+                                                    rows="4" value={recipeFormData.RECH_REMARKS || ''}
+                                                    maxLength={100}
+                                                    onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_REMARKS: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-semibold"
+                                                    placeholder="Cooking instructions or quality notes..."
+                                                />
+                                            </div>
+                                        </section>
+                                    </div>
+
+                                    {/* Right Column - Ingredients */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
+                                                <Utensils className="w-4 h-4" />
+                                                <span>Ingredients & Ratios</span>
+                                            </div>
+                                            <button
+                                                type="button" onClick={handleRecipeAddItem}
+                                                className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-600/10 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                <span>Add Material</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {recipeFormData.items.length === 0 && (
+                                                <div className="py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-center">
+                                                    <Beaker className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                                    <p className="text-slate-400 text-sm font-medium italic">No ingredients added yet. Click 'Add Material' to begin.</p>
+                                                </div>
+                                            )}
+                                            {recipeFormData.items.map((item, index) => (
+                                                <div key={index} className="flex gap-4 p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl animate-in slide-in-from-right-4 duration-300">
+                                                    <div className="flex-1 space-y-4">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <SearchableSelect
+                                                                options={rawMaterials.map(rm => ({ value: rm.RM_ID, label: `${rm.RM_NAME} (${rm.RM_CODE})` }))}
+                                                                value={item.RECD_RAW_METERIAL_ID}
+                                                                onChange={(val) => handleRecipeItemChange(index, 'RECD_RAW_METERIAL_ID', val)}
+                                                                placeholder="Ingredient"
+                                                            />
+                                                            <div className="flex gap-2">
+                                                                <div className="relative flex-[2]">
+                                                                    <input
+                                                                        type="number" min="0" step="any" placeholder="Qty"
+                                                                        value={item.displayQty}
+                                                                        onChange={(e) => handleRecipeItemChange(index, 'displayQty', e.target.value)}
+                                                                        className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    {(() => {
+                                                                        const baseU = String(item.RECD_UNIT || '').trim().toUpperCase();
+                                                                        const isMassOrVol = ['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES', 'G', 'GRAM', 'GRAMS', 'ML', 'MLS'].includes(baseU);
+
+                                                                        if (isMassOrVol) {
+                                                                            return (
+                                                                                <select
+                                                                                    value={item.displayUnit}
+                                                                                    onChange={(e) => handleRecipeItemChange(index, 'displayUnit', e.target.value)}
+                                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-center"
+                                                                                >
+                                                                                    <option value="KG">KG</option>
+                                                                                    <option value="g">g</option>
+                                                                                    <option value="mg">mg</option>
+                                                                                    <option value="L">L</option>
+                                                                                    <option value="ml">ml</option>
+                                                                                </select>
+                                                                            );
+                                                                        }
+
+                                                                        return (
+                                                                            <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-2 text-sm font-bold text-center text-slate-500">
+                                                                                {item.RECD_UNIT || 'Unit'}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                                <button
+                                                                    type="button" onClick={() => handleRecipeRemoveItem(index)}
+                                                                    className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                                                >
+                                                                    <Minus className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="relative group">
+                                                            <input
+                                                                type="text" placeholder="Note (e.g., finely chopped, sifted)"
+                                                                value={item.RECD_REMARKS}
+                                                                maxLength={100}
+                                                                onChange={(e) => handleRecipeItemChange(index, 'RECD_REMARKS', e.target.value)}
+                                                                className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 text-[10px] italic text-slate-700 dark:text-white pr-16"
+                                                            />
+                                                            <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold ${item.RECD_REMARKS?.length >= 100 ? 'text-rose-500' : 'text-slate-400 opacity-0 group-focus-within:opacity-100 transition-opacity'}`}>
+                                                                {item.RECD_REMARKS?.length || 0}/100
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-6 pt-6 sticky bottom-0 bg-white dark:bg-[#1e293b] py-6 border-t border-slate-100 dark:border-slate-800">
+                                    <button type="button" onClick={() => setIsRecipeModalOpen(false)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase text-xs tracking-widest rounded-3xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Close</button>
+                                    <button
+                                        type="submit" disabled={isRecipeSaving}
+                                        className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-3xl shadow-2xl shadow-indigo-600/30 flex items-center justify-center space-x-3 transition-all active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        {isRecipeSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                        <span>{isRecipeSaving ? 'Processing...' : (editingRecipe ? 'Apply Changes' : 'Authorize & Save Recipe')}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
         </div>
     );
 };

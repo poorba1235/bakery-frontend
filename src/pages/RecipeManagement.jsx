@@ -1,23 +1,32 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { 
-    Plus, Search, FileText, CheckCircle, Clock, 
-    ArrowRight, Trash2, Save, X, Loader2, 
-    ChefHat, Edit2, Box, Layers, Ruler, 
-    Hash, BarChart, ShoppingCart, Info, 
-    Calendar, TrendingUp, Filter, AlertTriangle,
-    Utensils, Beaker, ClipboardList, Minus,
-    Zap, Eye
+import {
+    AlertTriangle,
+    Beaker,
+    ChefHat,
+    ClipboardList,
+    Clock,
+    Edit2,
+    Eye,
+    Info,
+    Loader2,
+    Minus,
+    Plus,
+    Save,
+    Search,
+    Trash2,
+    Utensils,
+    X
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import SearchableSelect from '../components/SearchableSelect';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
-import SearchableSelect from '../components/SearchableSelect';
 
 const RecipeManagement = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
-    
+
     const [recipes, setRecipes] = useState([]);
     const [products, setProducts] = useState([]);
     const [rawMaterials, setRawMaterials] = useState([]);
@@ -31,7 +40,7 @@ const RecipeManagement = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    
+
     // Helper to block negative signs and other non-numeric characters
     const handleNumericKeyDown = (e) => {
         if (['-', '+', 'e', 'E'].includes(e.key)) {
@@ -75,8 +84,8 @@ const RecipeManagement = () => {
             setEditingRecipe(recipe);
             try {
                 const detailsRes = await api.get(`/recipe/${recipe.RECH_ID}/details`);
-                setFormData({ 
-                    ...recipe, 
+                setFormData({
+                    ...recipe,
                     items: detailsRes.data.map(d => {
                         const baseUnit = d.RECD_UNIT;
                         const qty = Number(d.RECD_QTY);
@@ -154,7 +163,7 @@ const RecipeManagement = () => {
         }
 
         const newItems = [...formData.items];
-        
+
         if (field === 'RECD_RAW_METERIAL_ID') {
             const material = rawMaterials.find(rm => rm.RM_ID === value);
             if (material) {
@@ -214,7 +223,7 @@ const RecipeManagement = () => {
         } else {
             newItems[index][field] = value;
         }
-        
+
         setFormData(prev => ({ ...prev, items: newItems }));
     };
 
@@ -295,7 +304,7 @@ const RecipeManagement = () => {
     };
 
     const filteredRecipes = recipes
-        .filter(r => 
+        .filter(r =>
             r.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.RECH_CODE.toLowerCase().includes(searchTerm.toLowerCase())
         )
@@ -325,11 +334,11 @@ const RecipeManagement = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <div className="flex items-center space-x-3">
-                       
+
                         <div>
                             <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Recipe Master</h1>
                             <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center text-sm">
-                              
+
                                 Manage formulas and ingredient ratios
                             </p>
                         </div>
@@ -339,15 +348,15 @@ const RecipeManagement = () => {
                 <div className="flex items-center gap-3">
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                        <input 
-                            type="text" 
-                            placeholder="Search recipes..." 
+                        <input
+                            type="text"
+                            placeholder="Search recipes..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-11 pr-6 py-3.5 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-2xl w-full md:w-80 text-sm outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                         />
                     </div>
-                    <button 
+                    <button
                         onClick={() => handleOpenModal()}
                         className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3.5 rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
                     >
@@ -398,12 +407,12 @@ const RecipeManagement = () => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center space-x-4">
-                                           
+
                                             <div className="min-w-0">
                                                 <div className="text-slate-800 dark:text-white font-black text-sm tracking-tight mb-0.5 truncate max-w-[200px]" title={recipe.product_name}>
                                                     {recipe.product_name}
                                                 </div>
-                                               
+
                                             </div>
                                         </div>
                                     </td>
@@ -427,21 +436,21 @@ const RecipeManagement = () => {
                                     </td>
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex items-center justify-end space-x-2">
-                                            <button 
+                                            <button
                                                 onClick={() => handleView(recipe)}
                                                 className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm"
                                                 title="View Recipe Details"
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleOpenModal(recipe)}
                                                 className="p-3 text-amber-500 hover:bg-amber-500/10 rounded-2xl transition-all shadow-sm"
                                                 title="Edit Recipe"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(recipe.RECH_ID)}
                                                 className="p-3 text-red-500 hover:bg-red-500/10 rounded-2xl transition-all shadow-sm"
                                                 title="Deactivate"
@@ -497,12 +506,12 @@ const RecipeManagement = () => {
             <AnimatePresence>
                 {isModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setIsModalOpen(false)}
                             className="fixed inset-0 bg-black/80 backdrop-blur-md"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className="relative w-full max-w-5xl bg-white dark:bg-[#1e293b] rounded-[2.5rem] border border-slate-300 dark:border-[#334155] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
                         >
@@ -533,7 +542,7 @@ const RecipeManagement = () => {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Finished Good</label>
-                                                    <SearchableSelect 
+                                                    <SearchableSelect
                                                         options={products.map(p => ({ value: p.P_ID, label: `${p.P_NAME} (${p.P_CODE})` }))}
                                                         value={formData.RECH_PRODUCT_ID}
                                                         onChange={(val) => setFormData({ ...formData, RECH_PRODUCT_ID: val })}
@@ -550,9 +559,9 @@ const RecipeManagement = () => {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-amber-500">Prep (Mins)</label>
-                                                        <input 
-                                                            type="number" min="0" value={formData.RECH_PREPARATION_TIME} 
-                                                            onChange={(e) => setFormData({ ...formData, RECH_PREPARATION_TIME: e.target.value })} 
+                                                        <input
+                                                            type="number" min="0" value={formData.RECH_PREPARATION_TIME}
+                                                            onChange={(e) => setFormData({ ...formData, RECH_PREPARATION_TIME: e.target.value })}
                                                             onKeyDown={handleNumericKeyDown}
                                                             className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"
                                                         />
@@ -565,10 +574,10 @@ const RecipeManagement = () => {
                                                             {(formData.RECH_REMARKS || '').length}/100
                                                         </span>
                                                     </div>
-                                                    <textarea 
-                                                        rows="4" value={formData.RECH_REMARKS || ''} 
+                                                    <textarea
+                                                        rows="4" value={formData.RECH_REMARKS || ''}
                                                         maxLength={100}
-                                                        onChange={(e) => setFormData({ ...formData, RECH_REMARKS: e.target.value })} 
+                                                        onChange={(e) => setFormData({ ...formData, RECH_REMARKS: e.target.value })}
                                                         className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-semibold"
                                                         placeholder="Cooking instructions or quality notes..."
                                                     />
@@ -583,7 +592,7 @@ const RecipeManagement = () => {
                                                     <Utensils className="w-4 h-4" />
                                                     <span>Ingredients & Ratios</span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     type="button" onClick={handleAddItem}
                                                     className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-600/10 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
                                                 >
@@ -603,7 +612,7 @@ const RecipeManagement = () => {
                                                     <div key={index} className="flex gap-4 p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl animate-in slide-in-from-right-4 duration-300">
                                                         <div className="flex-1 space-y-4">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <SearchableSelect 
+                                                                <SearchableSelect
                                                                     options={rawMaterials.map(rm => ({ value: rm.RM_ID, label: `${rm.RM_NAME} (${rm.RM_CODE})` }))}
                                                                     value={item.RECD_RAW_METERIAL_ID}
                                                                     onChange={(val) => handleItemChange(index, 'RECD_RAW_METERIAL_ID', val)}
@@ -611,10 +620,10 @@ const RecipeManagement = () => {
                                                                 />
                                                                 <div className="flex gap-2">
                                                                     <div className="relative flex-[2]">
-                                                                        <input 
+                                                                        <input
                                                                             type="number" min="0" step="any" placeholder="Qty"
-                                                                            value={item.displayQty} 
-                                                                            onChange={(e) => handleItemChange(index, 'displayQty', e.target.value)} 
+                                                                            value={item.displayQty}
+                                                                            onChange={(e) => handleItemChange(index, 'displayQty', e.target.value)}
                                                                             onKeyDown={handleNumericKeyDown}
                                                                             className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold"
                                                                         />
@@ -647,7 +656,7 @@ const RecipeManagement = () => {
                                                                             );
                                                                         })()}
                                                                     </div>
-                                                                    <button 
+                                                                    <button
                                                                         type="button" onClick={() => handleRemoveItem(index)}
                                                                         className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                                                                     >
@@ -656,11 +665,11 @@ const RecipeManagement = () => {
                                                                 </div>
                                                             </div>
                                                             <div className="relative group">
-                                                                <input 
+                                                                <input
                                                                     type="text" placeholder="Note (e.g., finely chopped, sifted)"
-                                                                    value={item.RECD_REMARKS} 
+                                                                    value={item.RECD_REMARKS}
                                                                     maxLength={100}
-                                                                    onChange={(e) => handleItemChange(index, 'RECD_REMARKS', e.target.value)} 
+                                                                    onChange={(e) => handleItemChange(index, 'RECD_REMARKS', e.target.value)}
                                                                     className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 text-[10px] italic text-slate-700 dark:text-white pr-16"
                                                                 />
                                                                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold ${item.RECD_REMARKS?.length >= 100 ? 'text-rose-500' : 'text-slate-400 opacity-0 group-focus-within:opacity-100 transition-opacity'}`}>
@@ -676,8 +685,8 @@ const RecipeManagement = () => {
 
                                     <div className="flex gap-6 pt-6 sticky bottom-0 bg-white dark:bg-[#1e293b] py-6 border-t border-slate-100 dark:border-slate-800">
                                         <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase text-xs tracking-widest rounded-3xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Close</button>
-                                        <button 
-                                            type="submit" disabled={isSaving} 
+                                        <button
+                                            type="submit" disabled={isSaving}
                                             className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-3xl shadow-2xl shadow-indigo-600/30 flex items-center justify-center space-x-3 transition-all active:scale-[0.98] disabled:opacity-50"
                                         >
                                             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -694,12 +703,12 @@ const RecipeManagement = () => {
             <AnimatePresence>
                 {isViewModalOpen && viewingRecipe && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setIsViewModalOpen(false)}
                             className="fixed inset-0 bg-black/80 backdrop-blur-md"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className="relative w-full max-w-4xl bg-white dark:bg-[#1e293b] rounded-[2.5rem] border border-slate-300 dark:border-[#334155] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                         >
@@ -723,7 +732,7 @@ const RecipeManagement = () => {
                                 </div>
                                 <button onClick={() => setIsViewModalOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm"><X className="w-5 h-5" /></button>
                             </div>
-                            
+
                             <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
                                 <div className="grid grid-cols-3 gap-8">
                                     <div className="space-y-1">
@@ -813,7 +822,7 @@ const RecipeManagement = () => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-transparent">
                                 <button onClick={() => setIsViewModalOpen(false)} className="w-full py-4 bg-slate-800 dark:bg-slate-700 text-white font-black uppercase text-xs tracking-widest rounded-2xl hover:bg-slate-700 transition-all">Close</button>
                             </div>
