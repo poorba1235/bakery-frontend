@@ -962,7 +962,7 @@ const ProductManagement = () => {
                                             <div className="space-y-2">
                                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-indigo-500">Product Qty</label>
                                                 <input
-                                                    type="number" min="1" value={formData.P_Qty}
+                                                    type="number" min="0" step="any" value={formData.P_Qty}
                                                     onChange={(e) => setFormData({ ...formData, P_Qty: e.target.value })}
                                                     onKeyDown={handleNumericKeyDown}
                                                     placeholder="1"
