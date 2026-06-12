@@ -1,10 +1,43 @@
 import { motion } from "framer-motion";
 import { Shield, Terminal, User, Users, Package, ShoppingCart, DollarSign } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import api from "../services/api";
+import { useNotification } from "../context/NotificationContext";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const role = user?.roles?.split(",")[0] || "Staff";
+  const { showNotification } = useNotification();
+
+  const [expense, setExpense] = useState('');
+  const [isUpdatingExpense, setIsUpdatingExpense] = useState(false);
+
+  useEffect(() => {
+    fetchExpense();
+  }, []);
+
+  const fetchExpense = async () => {
+    try {
+      const res = await api.get('/expense');
+      const val = parseFloat(res.data.cost_price);
+      setExpense(val === 0 ? '' : res.data.cost_price);
+    } catch (err) {
+      console.error('Failed to fetch expense:', err);
+    }
+  };
+
+  const handleUpdateExpense = async () => {
+    setIsUpdatingExpense(true);
+    try {
+      await api.put('/expense', { cost_price: expense });
+      showNotification('Expense updated successfully!', 'success');
+    } catch (err) {
+      showNotification('Failed to update expense', 'error');
+    } finally {
+      setIsUpdatingExpense(false);
+    }
+  };
 
   const stats = [
     {
@@ -115,6 +148,33 @@ const Dashboard = () => {
           <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] p-10 text-center text-slate-500">
             <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p>No recent activity</p>
+          </div>
+        </div>
+
+        {/* Expense Management */}
+        <div className="mt-10">
+          <h3 className="text-lg font-semibold mb-4">Store Expenses (Daily/Weekly)</h3>
+
+          <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] p-8 shadow-sm max-w-xl flex flex-col md:flex-row items-start md:items-end gap-6">
+            <div className="w-full">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-rose-500">Fixed Cost / Expense (Rs.)</label>
+              <input
+                type="number" 
+                min="0" 
+                step="0.01" 
+                value={expense}
+                onChange={(e) => setExpense(e.target.value)}
+                placeholder="0.00"
+                className="mt-2 w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all font-semibold"
+              />
+            </div>
+            <button
+              onClick={handleUpdateExpense}
+              disabled={isUpdatingExpense}
+              className="w-full md:w-auto px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-rose-600/20 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {isUpdatingExpense ? "Updating..." : "Update Expense"}
+            </button>
           </div>
         </div>
 

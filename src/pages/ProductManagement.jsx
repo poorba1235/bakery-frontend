@@ -20,7 +20,8 @@ import {
     Clock,
     Minus,
     X,
-    ChefHat
+    ChefHat,
+    Calculator
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import SearchableSelect from '../components/SearchableSelect';
@@ -91,7 +92,8 @@ const ProductManagement = () => {
         P_ISSUE_BAG_status: 0,
         actual_barcode: '',
         P_Qty: 1,
-        P_WEIGHT: 0.00
+        P_WEIGHT: 0.00,
+        P_actual_weight: 0.00
     });
 
     const PACK_TYPES = ['Single', 'Pack'];
@@ -134,7 +136,8 @@ const ProductManagement = () => {
                 P_MINIMUM_LEVEL: product.P_MINIMUM_LEVEL === 0 || product.P_MINIMUM_LEVEL === '0' ? '' : product.P_MINIMUM_LEVEL ?? '',
                 P_MAXIMUM_LEVEL: product.P_MAXIMUM_LEVEL === 0 || product.P_MAXIMUM_LEVEL === '0' ? '' : product.P_MAXIMUM_LEVEL ?? '',
                 P_Qty: product.P_Qty ?? 1,
-                P_WEIGHT: product.P_WEIGHT ?? 0.00
+                P_WEIGHT: product.P_WEIGHT ?? 0.00,
+                P_actual_weight: product.P_actual_weight ?? 0.00
             });
             setSelectedFile(null);
         } else {
@@ -159,7 +162,8 @@ const ProductManagement = () => {
                 P_ISSUE_BAG_status: 0,
                 actual_barcode: '',
                 P_Qty: 1,
-                P_WEIGHT: 0.00
+                P_WEIGHT: 0.00,
+                P_actual_weight: 0.00
             });
             try {
                 const [codeRes, barcodeRes] = await Promise.all([
@@ -176,6 +180,80 @@ const ProductManagement = () => {
             }
         }
         setIsModalOpen(true);
+    };
+
+    const handleCalculateProductQty = async () => {
+        if (!formData.P_ID) {
+            showNotification('Please save the product and create a recipe first.', 'warning');
+            return;
+        }
+        if (!formData.P_actual_weight || parseFloat(formData.P_actual_weight) <= 0) {
+            showNotification('Please enter a valid Actual Weight greater than 0.', 'warning');
+            return;
+        }
+
+        try {
+            // Find recipe for this product
+            const recipe = recipes.find(r => r.RECH_PRODUCT_ID === formData.P_ID);
+            if (!recipe) {
+                showNotification('No recipe found for this product. Please add a recipe first.', 'warning');
+                return;
+            }
+
+            // Fetch recipe details
+            const res = await api.get(`/recipe/${recipe.RECH_ID}/details`);
+            const recipeItems = res.data || [];
+            
+            if (recipeItems.length === 0) {
+                showNotification('Recipe has no items to calculate.', 'warning');
+                return;
+            }
+
+            let totalGrams = 0;
+            recipeItems.forEach(item => {
+                const name = String(item.material_name || '').toLowerCase();
+                // Exclude fuels and non-yield ingredients from the calculation
+                if (name.includes('gas') || name.includes('diesel') || name.includes('petrol') || name.includes('fuel')) {
+                    return;
+                }
+
+                const b = String(item.RECD_UNIT || '').trim().toUpperCase();
+                const qty = parseFloat(item.RECD_QTY) || 0;
+                
+                if (['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES'].includes(b)) {
+                    totalGrams += qty * 1000;
+                } else if (['G', 'GRAM', 'GRAMS', 'ML'].includes(b)) {
+                    totalGrams += qty;
+                } else if (['MG'].includes(b)) {
+                    totalGrams += qty / 1000;
+                } else {
+                    totalGrams += qty; // fallback
+                }
+            });
+
+            // Convert actual weight to grams based on product unit
+            const pUnit = String(formData.P_UNIT || '').trim().toUpperCase();
+            let actualWeightGrams = parseFloat(formData.P_actual_weight) || 0;
+            
+            if (['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES'].includes(pUnit)) {
+                actualWeightGrams *= 1000;
+            } else if (['MG'].includes(pUnit)) {
+                actualWeightGrams /= 1000;
+            }
+
+            if (actualWeightGrams === 0) {
+                showNotification('Actual Weight in grams cannot be 0.', 'warning');
+                return;
+            }
+
+            const calculatedQty = totalGrams / actualWeightGrams;
+            // Limit to max 4 decimal places
+            setFormData(prev => ({ ...prev, P_Qty: parseFloat(calculatedQty.toFixed(4)) }));
+            showNotification('Product Qty calculated successfully', 'success');
+        } catch (error) {
+            console.error('Error calculating Product Qty:', error);
+            showNotification('Failed to calculate Product Qty.', 'error');
+        }
     };
 
     const handleSave = async (e) => {
@@ -960,7 +1038,28 @@ const ProductManagement = () => {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-indigo-500">Product Qty</label>
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-teal-500">Actual Weight</label>
+                                                <input
+                                                    type="number" min="0" step="0.01" value={formData.P_actual_weight || ''}
+                                                    onChange={(e) => setFormData({ ...formData, P_actual_weight: e.target.value })}
+                                                    onKeyDown={handleNumericKeyDown}
+                                                    placeholder="0.00"
+                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between ml-1">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider text-indigo-500">Product Qty</label>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleCalculateProductQty}
+                                                        className="flex items-center space-x-1 text-[10px] font-black uppercase text-blue-500 hover:text-blue-600 transition-colors"
+                                                        title="Calculate from Recipe Sum / Actual Weight"
+                                                    >
+                                                        <Calculator className="w-3 h-3" />
+                                                        <span>Auto Calc</span>
+                                                    </button>
+                                                </div>
                                                 <input
                                                     type="number" min="0" step="any" value={formData.P_Qty}
                                                     onChange={(e) => setFormData({ ...formData, P_Qty: e.target.value })}
@@ -1120,7 +1219,7 @@ const ProductManagement = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                <div className="grid grid-cols-6 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Unit</p>
                                         <p className="text-sm font-bold text-slate-700 dark:text-white uppercase tracking-tight">{viewingProduct.P_UNIT}</p>
@@ -1128,6 +1227,14 @@ const ProductManagement = () => {
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Product_Qty</p>
                                         <p className="text-sm font-bold text-slate-700 dark:text-white tracking-tight">{viewingProduct.P_Qty || 1}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight</p>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-white tracking-tight">{viewingProduct.P_WEIGHT || '0.00'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Actual Weight</p>
+                                        <p className="text-sm font-bold text-slate-700 dark:text-white tracking-tight">{viewingProduct.P_actual_weight || '0.00'}</p>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Barcode</p>
