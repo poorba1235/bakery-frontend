@@ -983,24 +983,7 @@ const OrderManagement = () => {
                                                                         {/* Base Tiers (LKR) */}
                                                                         <td className="px-6 py-4.5">
                                                                             <div className="flex flex-col gap-2 w-56">
-                                                                                <div className="flex items-center space-x-2">
-                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Selling</span>
-                                                                                    <input
-                                                                                        type="text"
-                                                                                        inputMode="decimal"
-                                                                                        disabled={!isChecked}
-                                                                                        placeholder="Selling"
-                                                                                        value={row.OD_UNIT_SELLING_PRICE || ''}
-                                                                                        onChange={(e) => {
-                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                                                            setModalItems(prev => ({
-                                                                                                ...prev,
-                                                                                                [pId]: { ...prev[pId], OD_UNIT_SELLING_PRICE: val }
-                                                                                            }));
-                                                                                        }}
-                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                                    />
-                                                                                </div>
+                                                                               
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Shop</span>
                                                                                     <input
@@ -1014,6 +997,25 @@ const OrderManagement = () => {
                                                                                             setModalItems(prev => ({
                                                                                                 ...prev,
                                                                                                 [pId]: { ...prev[pId], OD_UNIT_SHOP_PRICE: val }
+                                                                                            }));
+                                                                                        }}
+                                                                                        className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                    />
+                                                                                </div>
+
+                                                                                 <div className="flex items-center space-x-2">
+                                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Selling</span>
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        inputMode="decimal"
+                                                                                        disabled={!isChecked}
+                                                                                        placeholder="Selling"
+                                                                                        value={row.OD_UNIT_SELLING_PRICE || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                            setModalItems(prev => ({
+                                                                                                ...prev,
+                                                                                                [pId]: { ...prev[pId], OD_UNIT_SELLING_PRICE: val }
                                                                                             }));
                                                                                         }}
                                                                                         className={`bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-32 ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1819,7 +1821,7 @@ const OrderManagement = () => {
                                                         {/* Cost & Margin Analysis - Only show for Admins */}
                                                         {isSystemAdmin && (
                                                             <>
-                                                                <DetailSubField
+                                                                {/* <DetailSubField
                                                                     label={parseInt(viewingOrder.OR_STATUS) === 0 ? "Est. Unit Cost" : "Unit Cost"}
                                                                     value={`LKR ${formatPrice(detail.OD_UNIT_COST_PRICE > 0 ? detail.OD_UNIT_COST_PRICE : (detail.estimated_unit_cost || 0))}`}
                                                                     icon={<Clock className={`w-3.5 h-3.5 ${parseInt(viewingOrder.OR_STATUS) === 0 ? 'text-amber-400' : 'text-amber-600'}`} />}
@@ -1844,7 +1846,7 @@ const OrderManagement = () => {
                                                                             return `LKR ${formatPrice(margin)} (${percent.toFixed(1)}%)`;
                                                                         })()}
                                                                     </div>
-                                                                </div>
+                                                                </div> */}
                                                             </>
                                                         )}
                                                     </div>
@@ -2441,7 +2443,7 @@ const OrderManagement = () => {
                                                             {/* Ingredients Table */}
                                                             {item.hasRecipe && item.recipeCostPreview ? (
                                                                 <div className="space-y-4">
-                                              
+
                                                                     <table className="w-full text-[10px] print:text-[20px] text-left border-collapse">
                                                                         <thead>
                                                                             <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[8px] print:text-[18px] tracking-wider border-b-2 border-slate-300">
