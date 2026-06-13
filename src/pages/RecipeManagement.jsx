@@ -53,6 +53,7 @@ const RecipeManagement = () => {
         RECH_PRODUCT_ID: '',
         RECH_MADE_QTY: 1,
         RECH_PREPARATION_TIME: 0,
+        RECH_STORE_EXPENSES: 0,
         RECH_REMARKS: '',
         items: []
     });
@@ -132,6 +133,7 @@ const RecipeManagement = () => {
                 RECH_PRODUCT_ID: '',
                 RECH_MADE_QTY: 1,
                 RECH_PREPARATION_TIME: 30,
+                RECH_STORE_EXPENSES: 0,
                 RECH_REMARKS: '',
                 items: []
             });
@@ -568,6 +570,16 @@ const RecipeManagement = () => {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-emerald-500">Store Expenses</label>
+                                                    <input
+                                                        type="number" min="0" step="0.01" value={formData.RECH_STORE_EXPENSES}
+                                                        onChange={(e) => setFormData({ ...formData, RECH_STORE_EXPENSES: e.target.value })}
+                                                        onKeyDown={handleNumericKeyDown}
+                                                        placeholder="Enter Store Expenses (Rs.)"
+                                                        className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
                                                     <div className="flex justify-between items-center px-1">
                                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructions / Notes</label>
                                                         <span className={`text-[10px] font-bold ${(formData.RECH_REMARKS || '').length >= 100 ? 'text-rose-500' : 'text-slate-400'}`}>
@@ -734,7 +746,7 @@ const RecipeManagement = () => {
                             </div>
 
                             <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
-                                <div className="grid grid-cols-3 gap-8">
+                                <div className="grid grid-cols-4 gap-8">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Standard Yield</p>
                                         <div className="flex items-center text-lg font-black text-slate-800 dark:text-white tracking-tighter">
@@ -743,10 +755,16 @@ const RecipeManagement = () => {
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Preparation Time</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prep Time</p>
                                         <div className="flex items-center text-lg font-black text-slate-800 dark:text-white tracking-tighter">
                                             <Clock className="w-5 h-5 mr-2 text-amber-500" />
-                                            {viewingRecipe.RECH_PREPARATION_TIME} Minutes
+                                            {viewingRecipe.RECH_PREPARATION_TIME} Min
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Store Expenses</p>
+                                        <div className="flex items-center text-lg font-black text-slate-800 dark:text-white tracking-tighter">
+                                            Rs. {parseFloat(viewingRecipe.RECH_STORE_EXPENSES || 0).toFixed(2)}
                                         </div>
                                     </div>
                                     <div className="space-y-1 text-right">

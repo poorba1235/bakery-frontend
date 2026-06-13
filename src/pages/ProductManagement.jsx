@@ -58,6 +58,7 @@ const ProductManagement = () => {
         RECH_PRODUCT_ID: '',
         RECH_MADE_QTY: 1,
         RECH_PREPARATION_TIME: 0,
+        RECH_STORE_EXPENSES: 0,
         RECH_REMARKS: '',
         items: []
     });
@@ -436,6 +437,7 @@ const ProductManagement = () => {
                 RECH_PRODUCT_ID: product.P_ID,
                 RECH_MADE_QTY: 1,
                 RECH_PREPARATION_TIME: 30,
+                RECH_STORE_EXPENSES: 0,
                 RECH_REMARKS: '',
                 items: []
             });
@@ -1339,9 +1341,20 @@ const ProductManagement = () => {
                                                     <input
                                                         type="number" min="0" value={recipeFormData.RECH_PREPARATION_TIME}
                                                         onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_PREPARATION_TIME: e.target.value })}
+                                                        onKeyDown={handleNumericKeyDown}
                                                         className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"
                                                     />
                                                 </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-emerald-500">Store Expenses</label>
+                                                <input
+                                                    type="number" min="0" step="0.01" value={recipeFormData.RECH_STORE_EXPENSES}
+                                                    onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_STORE_EXPENSES: e.target.value })}
+                                                    onKeyDown={handleNumericKeyDown}
+                                                    placeholder="Enter Store Expenses (Rs.)"
+                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold"
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center px-1">
