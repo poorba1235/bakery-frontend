@@ -22,6 +22,6 @@ api.interceptors.request.use(
     }
 );
 
-export const REPORTS_URL = 'http://79.108.225.152:8005/api/reports';
+export const REPORTS_URL = 'http://79.108.225.152:8006/api/reports';
 
 export default api;
