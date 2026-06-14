@@ -2,13 +2,17 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
     AlertTriangle,
     BarChart,
+    Beaker,
+    Calculator,
     Calendar,
+    ChefHat,
     Edit2,
     Eye,
     Image as ImageIcon,
     Info,
     Layers,
     Loader2,
+    Minus,
     Plus,
     Ruler,
     Save,
@@ -16,12 +20,7 @@ import {
     ShoppingCart,
     Trash2,
     Utensils,
-    Beaker,
-    Clock,
-    Minus,
-    X,
-    ChefHat,
-    Calculator
+    X
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import SearchableSelect from '../components/SearchableSelect';
@@ -400,22 +399,26 @@ const ProductManagement = () => {
                         const baseU = String(baseUnit || '').trim().toUpperCase();
                         if (['KG', 'KGS', 'KGMS'].includes(baseU)) {
                             if (qty < 0.001 && qty > 0) {
-                                displayUnit = 'mg';
+                                displayUnit = 'MG';
                                 displayQty = qty * 1000000;
                             } else if (qty < 1 && qty > 0) {
-                                displayUnit = 'g';
+                                displayUnit = 'G';
                                 displayQty = qty * 1000;
                             }
                         } else if (['L', 'LTR', 'LITRE', 'LITRES'].includes(baseU)) {
                             if (qty < 1 && qty > 0) {
-                                displayUnit = 'ml';
+                                displayUnit = 'ML';
                                 displayQty = qty * 1000;
                             }
                         } else if (['G', 'GRAM', 'GRAMS'].includes(baseU)) {
                             if (qty < 0.001 && qty > 0) {
-                                displayUnit = 'mg';
+                                displayUnit = 'MG';
                                 displayQty = qty * 1000;
                             }
+                        } else if (['ML', 'MLS'].includes(baseU)) {
+                            displayUnit = 'ML';
+                        } else {
+                            displayUnit = baseU;
                         }
 
                         return {
@@ -490,15 +493,13 @@ const ProductManagement = () => {
             const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
             const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
             const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+            const isBaseMl = ['ML', 'MLS'].includes(b);
 
             let ratio = 1;
-            if (isBaseKg) {
+            if (isBaseKg || isBaseL) {
                 if (f === 'G' || f === 'ML') ratio = 0.001;
                 else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseL) {
-                if (f === 'G' || f === 'ML') ratio = 0.001;
-                else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseG) {
+            } else if (isBaseG || isBaseMl) {
                 if (f === 'KG' || f === 'L') ratio = 1000;
                 else if (f === 'MG') ratio = 0.001;
             }
@@ -513,15 +514,13 @@ const ProductManagement = () => {
             const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
             const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
             const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+            const isBaseMl = ['ML', 'MLS'].includes(b);
 
             let ratio = 1;
-            if (isBaseKg) {
+            if (isBaseKg || isBaseL) {
                 if (f === 'G' || f === 'ML') ratio = 0.001;
                 else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseL) {
-                if (f === 'G' || f === 'ML') ratio = 0.001;
-                else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseG) {
+            } else if (isBaseG || isBaseMl) {
                 if (f === 'KG' || f === 'L') ratio = 1000;
                 else if (f === 'MG') ratio = 0.001;
             }
@@ -1417,33 +1416,33 @@ const ProductManagement = () => {
                                                                     />
                                                                 </div>
                                                                 <div className="flex-1">
-                                                                    {(() => {
-                                                                        const baseU = String(item.RECD_UNIT || '').trim().toUpperCase();
-                                                                        const isMassOrVol = ['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES', 'G', 'GRAM', 'GRAMS', 'ML', 'MLS'].includes(baseU);
+                                                                        {(() => {
+                                                                            const baseU = String(item.RECD_UNIT || '').trim().toUpperCase();
+                                                                            const isMassOrVol = ['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES', 'G', 'GRAM', 'GRAMS', 'ML', 'MLS'].includes(baseU);
 
-                                                                        if (isMassOrVol) {
+                                                                            if (isMassOrVol) {
+                                                                                return (
+                                                                                    <select
+                                                                                        value={item.displayUnit}
+                                                                                        onChange={(e) => handleRecipeItemChange(index, 'displayUnit', e.target.value)}
+                                                                                        className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-center"
+                                                                                    >
+                                                                                        <option value="KG">KG</option>
+                                                                                        <option value="G">G</option>
+                                                                                        <option value="MG">MG</option>
+                                                                                        <option value="L">L</option>
+                                                                                        <option value="ML">ML</option>
+                                                                                    </select>
+                                                                                );
+                                                                            }
+
                                                                             return (
-                                                                                <select
-                                                                                    value={item.displayUnit}
-                                                                                    onChange={(e) => handleRecipeItemChange(index, 'displayUnit', e.target.value)}
-                                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-center"
-                                                                                >
-                                                                                    <option value="KG">KG</option>
-                                                                                    <option value="g">g</option>
-                                                                                    <option value="mg">mg</option>
-                                                                                    <option value="L">L</option>
-                                                                                    <option value="ml">ml</option>
-                                                                                </select>
+                                                                                <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-2 text-sm font-bold text-center text-slate-500">
+                                                                                    {item.RECD_UNIT || 'Unit'}
+                                                                                </div>
                                                                             );
-                                                                        }
-
-                                                                        return (
-                                                                            <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-2 text-sm font-bold text-center text-slate-500">
-                                                                                {item.RECD_UNIT || 'Unit'}
-                                                                            </div>
-                                                                        );
-                                                                    })()}
-                                                                </div>
+                                                                        })()}
+                                                                    </div>
                                                                 <button
                                                                     type="button" onClick={() => handleRecipeRemoveItem(index)}
                                                                     className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"

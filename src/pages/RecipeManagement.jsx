@@ -653,10 +653,10 @@ const RecipeManagement = () => {
                                                                                         className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-center"
                                                                                     >
                                                                                         <option value="KG">KG</option>
-                                                                                        <option value="G">g</option>
-                                                                                        <option value="MG">mg</option>
+                                                                                        <option value="G">G</option>
+                                                                                        <option value="MG">MG</option>
                                                                                         <option value="L">L</option>
-                                                                                        <option value="ML">ml</option>
+                                                                                        <option value="ML">ML</option>
                                                                                     </select>
                                                                                 );
                                                                             }
