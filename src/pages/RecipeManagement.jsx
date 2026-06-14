@@ -96,22 +96,26 @@ const RecipeManagement = () => {
                         const baseU = String(baseUnit || '').trim().toUpperCase();
                         if (['KG', 'KGS', 'KGMS'].includes(baseU)) {
                             if (qty < 0.001 && qty > 0) {
-                                displayUnit = 'mg';
+                                displayUnit = 'MG';
                                 displayQty = qty * 1000000;
                             } else if (qty < 1 && qty > 0) {
-                                displayUnit = 'g';
+                                displayUnit = 'G';
                                 displayQty = qty * 1000;
                             }
                         } else if (['L', 'LTR', 'LITRE', 'LITRES'].includes(baseU)) {
                             if (qty < 1 && qty > 0) {
-                                displayUnit = 'ml';
+                                displayUnit = 'ML';
                                 displayQty = qty * 1000;
                             }
                         } else if (['G', 'GRAM', 'GRAMS'].includes(baseU)) {
                             if (qty < 0.001 && qty > 0) {
-                                displayUnit = 'mg';
+                                displayUnit = 'MG';
                                 displayQty = qty * 1000;
                             }
+                        } else if (['ML', 'MLS'].includes(baseU)) {
+                            displayUnit = 'ML';
+                        } else {
+                            displayUnit = baseU;
                         }
 
                         return {
@@ -186,15 +190,13 @@ const RecipeManagement = () => {
             const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
             const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
             const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+            const isBaseMl = ['ML', 'MLS'].includes(b);
 
             let ratio = 1;
-            if (isBaseKg) {
+            if (isBaseKg || isBaseL) {
                 if (f === 'G' || f === 'ML') ratio = 0.001;
                 else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseL) {
-                if (f === 'G' || f === 'ML') ratio = 0.001;
-                else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseG) {
+            } else if (isBaseG || isBaseMl) {
                 if (f === 'KG' || f === 'L') ratio = 1000;
                 else if (f === 'MG') ratio = 0.001;
             }
@@ -209,15 +211,13 @@ const RecipeManagement = () => {
             const isBaseKg = ['KG', 'KGS', 'KGMS'].includes(b);
             const isBaseL = ['L', 'LTR', 'LITRE', 'LITRES'].includes(b);
             const isBaseG = ['G', 'GRAM', 'GRAMS'].includes(b);
+            const isBaseMl = ['ML', 'MLS'].includes(b);
 
             let ratio = 1;
-            if (isBaseKg) {
+            if (isBaseKg || isBaseL) {
                 if (f === 'G' || f === 'ML') ratio = 0.001;
                 else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseL) {
-                if (f === 'G' || f === 'ML') ratio = 0.001;
-                else if (f === 'MG') ratio = 0.000001;
-            } else if (isBaseG) {
+            } else if (isBaseG || isBaseMl) {
                 if (f === 'KG' || f === 'L') ratio = 1000;
                 else if (f === 'MG') ratio = 0.001;
             }
@@ -653,10 +653,10 @@ const RecipeManagement = () => {
                                                                                         className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-center"
                                                                                     >
                                                                                         <option value="KG">KG</option>
-                                                                                        <option value="g">g</option>
-                                                                                        <option value="mg">mg</option>
+                                                                                        <option value="G">g</option>
+                                                                                        <option value="MG">mg</option>
                                                                                         <option value="L">L</option>
-                                                                                        <option value="ml">ml</option>
+                                                                                        <option value="ML">ml</option>
                                                                                     </select>
                                                                                 );
                                                                             }
