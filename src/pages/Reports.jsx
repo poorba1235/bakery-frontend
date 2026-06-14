@@ -9,7 +9,7 @@ const Reports = () => {
     const canViewReports = perms.includes('view_reports');
 
     const [showDateModal, setShowDateModal] = useState(false);
-    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '' });
+    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '', shopType: 'all' });
     const [productsList, setProductsList] = useState([]);
     const [customersList, setCustomersList] = useState([]);
     const [salesRepsList, setSalesRepsList] = useState([]);
@@ -57,7 +57,7 @@ const Reports = () => {
                 <p className="text-slate-600 dark:text-[#94a3b8]">Insightful data about your bakery's performance.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {stats.map((stat, idx) => (
                     <div key={idx} className="bg-white dark:bg-[#1e293b] p-6 rounded-3xl border border-slate-300 dark:border-[#334155] relative overflow-hidden group hover:border-blue-500/50 transition-colors">
                         <div className="flex items-center justify-between mb-4">
@@ -75,7 +75,7 @@ const Reports = () => {
                         <div className={`absolute bottom-0 left-0 w-full h-1 bg-${stat.color}-500 opacity-20 group-hover:opacity-40 transition-opacity`} />
                     </div>
                 ))}
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-emerald-500/30 transition-all group">
@@ -129,6 +129,19 @@ const Reports = () => {
                         Generate PDF Report
                     </button>
                 </div>
+
+                <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-rose-500/30 transition-all group">
+                    <div className="w-14 h-14 bg-rose-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <TrendingUp className="w-7 h-7 text-rose-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Product Cost Track Report</h2>
+                    <p className="text-slate-600 dark:text-[#94a3b8] mb-6">Track the historical manufacturing cost (per unit and total) of your products over time.</p>
+                    <button 
+                        onClick={() => setShowDateModal('product-cost-track')}
+                        className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-rose-500/20">
+                        Generate PDF Report
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] flex flex-col items-center justify-center min-h-[300px] text-center">
@@ -155,7 +168,7 @@ const Reports = () => {
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            {(showDateModal === 'products' || showDateModal === 'product-profit') && (
+                            {(showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track') && (
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Product</label>
                                     <div className="relative">
@@ -175,6 +188,21 @@ const Reports = () => {
                                             ))}
                                         </select>
                                     </div>
+                                </div>
+                            )}
+
+                            {showDateModal === 'product-profit' && (
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Shop Type</label>
+                                    <select
+                                        value={dateRange.shopType}
+                                        onChange={(e) => setDateRange(prev => ({ ...prev, shopType: e.target.value }))}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-amber-500 transition-all appearance-none"
+                                    >
+                                        <option value="all">All Sales (Owner + Other Shops)</option>
+                                        <option value="owner">Owner Shop Only (Storefront POS)</option>
+                                        <option value="other">Other Shops Only (Sales Rep Invoices)</option>
+                                    </select>
                                 </div>
                             )}
 
@@ -246,8 +274,11 @@ const Reports = () => {
                                     const params = new URLSearchParams();
                                     if (dateRange.from) params.append('from', dateRange.from);
                                     if (dateRange.to) params.append('to', dateRange.to);
-                                    if ((showDateModal === 'products' || showDateModal === 'product-profit') && dateRange.productId) {
+                                    if ((showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track') && dateRange.productId) {
                                         params.append('productId', dateRange.productId);
+                                    }
+                                    if (showDateModal === 'product-profit' && dateRange.shopType) {
+                                        params.append('shopType', dateRange.shopType);
                                     }
                                     if (showDateModal === 'shop-sales') {
                                         if (dateRange.shopId) params.append('shopId', dateRange.shopId);

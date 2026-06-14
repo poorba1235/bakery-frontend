@@ -1530,7 +1530,7 @@ const POSPage = () => {
 
                     {/* Reconcile payment details */}
                     <div style={{ fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        
+
                         {completedSale.paymentMethod === 'Cash' && completedSale.amountTendered > 0 && (
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
