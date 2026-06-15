@@ -46,7 +46,7 @@ const ProductManagement = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    
+
     // Recipe Modal States
     const [rawMaterials, setRawMaterials] = useState([]);
     const [recipes, setRecipes] = useState([]);
@@ -203,7 +203,7 @@ const ProductManagement = () => {
             // Fetch recipe details
             const res = await api.get(`/recipe/${recipe.RECH_ID}/details`);
             const recipeItems = res.data || [];
-            
+
             if (recipeItems.length === 0) {
                 showNotification('Recipe has no items to calculate.', 'warning');
                 return;
@@ -211,6 +211,10 @@ const ProductManagement = () => {
 
             let totalGrams = 0;
             recipeItems.forEach(item => {
+                if (item.include !== 1) {
+                    return;
+                }
+
                 const name = String(item.material_name || '').toLowerCase();
                 // Exclude fuels and non-yield ingredients from the calculation
                 if (name.includes('gas') || name.includes('diesel') || name.includes('petrol') || name.includes('fuel')) {
@@ -219,7 +223,7 @@ const ProductManagement = () => {
 
                 const b = String(item.RECD_UNIT || '').trim().toUpperCase();
                 const qty = parseFloat(item.RECD_QTY) || 0;
-                
+
                 if (['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES'].includes(b)) {
                     totalGrams += qty * 1000;
                 } else if (['G', 'GRAM', 'GRAMS', 'ML'].includes(b)) {
@@ -234,7 +238,7 @@ const ProductManagement = () => {
             // Convert actual weight to grams based on product unit
             const pUnit = String(formData.P_UNIT || '').trim().toUpperCase();
             let actualWeightGrams = parseFloat(formData.P_actual_weight) || 0;
-            
+
             if (['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES'].includes(pUnit)) {
                 actualWeightGrams *= 1000;
             } else if (['MG'].includes(pUnit)) {
@@ -427,7 +431,8 @@ const ProductManagement = () => {
                             RECD_UNIT: d.RECD_UNIT,
                             RECD_REMARKS: d.RECD_REMARKS,
                             displayUnit,
-                            displayQty: displayQty % 1 === 0 ? displayQty.toString() : displayQty.toFixed(3)
+                            displayQty: displayQty % 1 === 0 ? displayQty.toString() : displayQty.toFixed(3),
+                            checked: d.include !== 0
                         };
                     })
                 });
@@ -451,7 +456,7 @@ const ProductManagement = () => {
     const handleRecipeAddItem = () => {
         setRecipeFormData(prev => ({
             ...prev,
-            items: [...prev.items, { RECD_RAW_METERIAL_ID: '', RECD_QTY: 0, RECD_UNIT: '', RECD_REMARKS: '', displayQty: '', displayUnit: '' }]
+            items: [...prev.items, { RECD_RAW_METERIAL_ID: '', RECD_QTY: 0, RECD_UNIT: '', RECD_REMARKS: '', displayQty: '', displayUnit: '', checked: true }]
         }));
     };
 
@@ -557,7 +562,14 @@ const ProductManagement = () => {
         }
 
         setIsRecipeSaving(true);
-        const finalData = { ...recipeFormData, RECH_MADE_QTY: 1 };
+        const finalData = {
+            ...recipeFormData,
+            RECH_MADE_QTY: 1,
+            items: recipeFormData.items.map(item => ({
+                ...item,
+                include: item.checked !== false ? 1 : 0
+            }))
+        };
         try {
             if (editingRecipe) {
                 await api.put(`/recipe/${editingRecipe.RECH_ID}`, finalData);
@@ -1051,8 +1063,8 @@ const ProductManagement = () => {
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between ml-1">
                                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider text-indigo-500">Product Qty</label>
-                                                    <button 
-                                                        type="button" 
+                                                    <button
+                                                        type="button"
                                                         onClick={handleCalculateProductQty}
                                                         className="flex items-center space-x-1 text-[10px] font-black uppercase text-blue-500 hover:text-blue-600 transition-colors"
                                                         title="Calculate from Recipe Sum / Actual Weight"
@@ -1281,141 +1293,149 @@ const ProductManagement = () => {
                     </div>
                 )}
             </AnimatePresence>
-        {/* Recipe Modal */}
-        <AnimatePresence>
-            {isRecipeModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={() => setIsRecipeModalOpen(false)}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-md"
-                    />
-                    <motion.div
-                        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="relative w-full max-w-5xl bg-white dark:bg-[#1e293b] rounded-[2.5rem] border border-slate-300 dark:border-[#334155] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
-                    >
-                        {/* Modal Header */}
-                        <div className="px-10 py-8 border-b border-slate-200 dark:border-[#334155] flex items-center justify-between bg-slate-50/50 dark:bg-[#0f172a]/50">
-                            <div className="flex items-center space-x-5">
-                                <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-indigo-600/30">
-                                    {editingRecipe ? <Edit2 className="w-7 h-7" /> : <ChefHat className="w-7 h-7" />}
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{editingRecipe ? 'Edit Recipe' : 'New Product Formula'}</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-tight">Define exact ingredient ratios and preparation requirements.</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsRecipeModalOpen(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm transition-all"><X className="w-6 h-6" /></button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
-                            <form onSubmit={handleRecipeSave} className="space-y-10">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                                    {/* Left Column - Meta Data */}
-                                    <div className="lg:col-span-1 space-y-8">
-                                        <section className="space-y-6">
-                                            <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
-                                                <Info className="w-4 h-4" />
-                                                <span>Target Product</span>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Finished Good</label>
-                                                <input
-                                                    type="text" readOnly 
-                                                    value={products.find(p => p.P_ID === recipeFormData.RECH_PRODUCT_ID)?.P_NAME || ''}
-                                                    className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-600 dark:text-slate-400 outline-none cursor-not-allowed font-bold"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Yield Qty</label>
-                                                    <input
-                                                        type="number" readOnly value={1}
-                                                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-400 dark:text-slate-500 outline-none cursor-not-allowed font-bold"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-amber-500">Prep (Mins)</label>
-                                                    <input
-                                                        type="number" min="0" value={recipeFormData.RECH_PREPARATION_TIME}
-                                                        onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_PREPARATION_TIME: e.target.value })}
-                                                        onKeyDown={handleNumericKeyDown}
-                                                        className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-emerald-500">Store Expenses</label>
-                                                <input
-                                                    type="number" min="0" step="0.01" value={recipeFormData.RECH_STORE_EXPENSES}
-                                                    onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_STORE_EXPENSES: e.target.value })}
-                                                    onKeyDown={handleNumericKeyDown}
-                                                    placeholder="Enter Store Expenses (Rs.)"
-                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center px-1">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructions / Notes</label>
-                                                    <span className={`text-[10px] font-bold ${(recipeFormData.RECH_REMARKS || '').length >= 100 ? 'text-rose-500' : 'text-slate-400'}`}>
-                                                        {(recipeFormData.RECH_REMARKS || '').length}/100
-                                                    </span>
-                                                </div>
-                                                <textarea
-                                                    rows="4" value={recipeFormData.RECH_REMARKS || ''}
-                                                    maxLength={100}
-                                                    onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_REMARKS: e.target.value })}
-                                                    className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-semibold"
-                                                    placeholder="Cooking instructions or quality notes..."
-                                                />
-                                            </div>
-                                        </section>
+            {/* Recipe Modal */}
+            <AnimatePresence>
+                {isRecipeModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setIsRecipeModalOpen(false)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-5xl bg-white dark:bg-[#1e293b] rounded-[2.5rem] border border-slate-300 dark:border-[#334155] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]"
+                        >
+                            {/* Modal Header */}
+                            <div className="px-10 py-8 border-b border-slate-200 dark:border-[#334155] flex items-center justify-between bg-slate-50/50 dark:bg-[#0f172a]/50">
+                                <div className="flex items-center space-x-5">
+                                    <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-indigo-600/30">
+                                        {editingRecipe ? <Edit2 className="w-7 h-7" /> : <ChefHat className="w-7 h-7" />}
                                     </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{editingRecipe ? 'Edit Recipe' : 'New Product Formula'}</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-tight">Define exact ingredient ratios and preparation requirements.</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsRecipeModalOpen(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm transition-all"><X className="w-6 h-6" /></button>
+                            </div>
 
-                                    {/* Right Column - Ingredients */}
-                                    <div className="lg:col-span-2 space-y-6">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
-                                                <Utensils className="w-4 h-4" />
-                                                <span>Ingredients & Ratios</span>
-                                            </div>
-                                            <button
-                                                type="button" onClick={handleRecipeAddItem}
-                                                className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-600/10 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                                <span>Add Material</span>
-                                            </button>
+                            {/* Modal Body */}
+                            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                                <form onSubmit={handleRecipeSave} className="space-y-10">
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                        {/* Left Column - Meta Data */}
+                                        <div className="lg:col-span-1 space-y-8">
+                                            <section className="space-y-6">
+                                                <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
+                                                    <Info className="w-4 h-4" />
+                                                    <span>Target Product</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Finished Good</label>
+                                                    <input
+                                                        type="text" readOnly
+                                                        value={products.find(p => p.P_ID === recipeFormData.RECH_PRODUCT_ID)?.P_NAME || ''}
+                                                        className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-600 dark:text-slate-400 outline-none cursor-not-allowed font-bold"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Yield Qty</label>
+                                                        <input
+                                                            type="number" readOnly value={1}
+                                                            className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-400 dark:text-slate-500 outline-none cursor-not-allowed font-bold"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-amber-500">Prep (Mins)</label>
+                                                        <input
+                                                            type="number" min="0" value={recipeFormData.RECH_PREPARATION_TIME}
+                                                            onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_PREPARATION_TIME: e.target.value })}
+                                                            onKeyDown={handleNumericKeyDown}
+                                                            className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-amber-500/10 transition-all font-bold"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 text-emerald-500">Store Expenses</label>
+                                                    <input
+                                                        type="number" min="0" step="0.01" value={recipeFormData.RECH_STORE_EXPENSES}
+                                                        onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_STORE_EXPENSES: e.target.value })}
+                                                        onKeyDown={handleNumericKeyDown}
+                                                        placeholder="Enter Store Expenses (Rs.)"
+                                                        className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructions / Notes</label>
+                                                        <span className={`text-[10px] font-bold ${(recipeFormData.RECH_REMARKS || '').length >= 100 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                                            {(recipeFormData.RECH_REMARKS || '').length}/100
+                                                        </span>
+                                                    </div>
+                                                    <textarea
+                                                        rows="4" value={recipeFormData.RECH_REMARKS || ''}
+                                                        maxLength={100}
+                                                        onChange={(e) => setRecipeFormData({ ...recipeFormData, RECH_REMARKS: e.target.value })}
+                                                        className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-2xl py-4 px-6 text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-semibold"
+                                                        placeholder="Cooking instructions or quality notes..."
+                                                    />
+                                                </div>
+                                            </section>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            {recipeFormData.items.length === 0 && (
-                                                <div className="py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-center">
-                                                    <Beaker className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                                                    <p className="text-slate-400 text-sm font-medium italic">No ingredients added yet. Click 'Add Material' to begin.</p>
+                                        {/* Right Column - Ingredients */}
+                                        <div className="lg:col-span-2 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-2 text-indigo-600 font-black uppercase text-[10px] tracking-[0.2em]">
+                                                    <Utensils className="w-4 h-4" />
+                                                    <span>Ingredients & Ratios</span>
                                                 </div>
-                                            )}
-                                            {recipeFormData.items.map((item, index) => (
-                                                <div key={index} className="flex gap-4 p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl animate-in slide-in-from-right-4 duration-300">
-                                                    <div className="flex-1 space-y-4">
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <SearchableSelect
-                                                                options={rawMaterials.map(rm => ({ value: rm.RM_ID, label: `${rm.RM_NAME} (${rm.RM_CODE})` }))}
-                                                                value={item.RECD_RAW_METERIAL_ID}
-                                                                onChange={(val) => handleRecipeItemChange(index, 'RECD_RAW_METERIAL_ID', val)}
-                                                                placeholder="Ingredient"
+                                                <button
+                                                    type="button" onClick={handleRecipeAddItem}
+                                                    className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-600/10 text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-100 transition-all"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    <span>Add Material</span>
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {recipeFormData.items.length === 0 && (
+                                                    <div className="py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] text-center">
+                                                        <Beaker className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                                        <p className="text-slate-400 text-sm font-medium italic">No ingredients added yet. Click 'Add Material' to begin.</p>
+                                                    </div>
+                                                )}
+                                                {recipeFormData.items.map((item, index) => (
+                                                    <div key={index} className="flex gap-4 p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl animate-in slide-in-from-right-4 duration-300">
+                                                        <div className="flex items-center justify-center pr-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.checked !== false}
+                                                                onChange={(e) => handleRecipeItemChange(index, 'checked', e.target.checked)}
+                                                                className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                             />
-                                                            <div className="flex gap-2">
-                                                                <div className="relative flex-[2]">
-                                                                    <input
-                                                                        type="number" min="0" step="any" placeholder="Qty"
-                                                                        value={item.displayQty}
-                                                                        onChange={(e) => handleRecipeItemChange(index, 'displayQty', e.target.value)}
-                                                                        className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex-1">
+                                                        </div>
+                                                        <div className="flex-1 space-y-4">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <SearchableSelect
+                                                                    options={rawMaterials.map(rm => ({ value: rm.RM_ID, label: `${rm.RM_NAME} (${rm.RM_CODE})` }))}
+                                                                    value={item.RECD_RAW_METERIAL_ID}
+                                                                    onChange={(val) => handleRecipeItemChange(index, 'RECD_RAW_METERIAL_ID', val)}
+                                                                    placeholder="Ingredient"
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <div className="relative flex-[2]">
+                                                                        <input
+                                                                            type="number" min="0" step="any" placeholder="Qty"
+                                                                            value={item.displayQty}
+                                                                            onChange={(e) => handleRecipeItemChange(index, 'displayQty', e.target.value)}
+                                                                            className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex-1">
                                                                         {(() => {
                                                                             const baseU = String(item.RECD_UNIT || '').trim().toUpperCase();
                                                                             const isMassOrVol = ['KG', 'KGS', 'KGMS', 'L', 'LTR', 'LITRE', 'LITRES', 'G', 'GRAM', 'GRAMS', 'ML', 'MLS'].includes(baseU);
@@ -1443,49 +1463,49 @@ const ProductManagement = () => {
                                                                             );
                                                                         })()}
                                                                     </div>
-                                                                <button
-                                                                    type="button" onClick={() => handleRecipeRemoveItem(index)}
-                                                                    className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                                                                >
-                                                                    <Minus className="w-4 h-4" />
-                                                                </button>
+                                                                    <button
+                                                                        type="button" onClick={() => handleRecipeRemoveItem(index)}
+                                                                        className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                                                    >
+                                                                        <Minus className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div className="relative group">
+                                                                <input
+                                                                    type="text" placeholder="Note (e.g., finely chopped, sifted)"
+                                                                    value={item.RECD_REMARKS}
+                                                                    maxLength={100}
+                                                                    onChange={(e) => handleRecipeItemChange(index, 'RECD_REMARKS', e.target.value)}
+                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 text-[10px] italic text-slate-700 dark:text-white pr-16"
+                                                                />
+                                                                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold ${item.RECD_REMARKS?.length >= 100 ? 'text-rose-500' : 'text-slate-400 opacity-0 group-focus-within:opacity-100 transition-opacity'}`}>
+                                                                    {item.RECD_REMARKS?.length || 0}/100
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div className="relative group">
-                                                            <input
-                                                                type="text" placeholder="Note (e.g., finely chopped, sifted)"
-                                                                value={item.RECD_REMARKS}
-                                                                maxLength={100}
-                                                                onChange={(e) => handleRecipeItemChange(index, 'RECD_REMARKS', e.target.value)}
-                                                                className="w-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 text-[10px] italic text-slate-700 dark:text-white pr-16"
-                                                            />
-                                                            <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold ${item.RECD_REMARKS?.length >= 100 ? 'text-rose-500' : 'text-slate-400 opacity-0 group-focus-within:opacity-100 transition-opacity'}`}>
-                                                                {item.RECD_REMARKS?.length || 0}/100
-                                                            </span>
-                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex gap-6 pt-6 sticky bottom-0 bg-white dark:bg-[#1e293b] py-6 border-t border-slate-100 dark:border-slate-800">
-                                    <button type="button" onClick={() => setIsRecipeModalOpen(false)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase text-xs tracking-widest rounded-3xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Close</button>
-                                    <button
-                                        type="submit" disabled={isRecipeSaving}
-                                        className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-3xl shadow-2xl shadow-indigo-600/30 flex items-center justify-center space-x-3 transition-all active:scale-[0.98] disabled:opacity-50"
-                                    >
-                                        {isRecipeSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                        <span>{isRecipeSaving ? 'Processing...' : (editingRecipe ? 'Apply Changes' : 'Authorize & Save Recipe')}</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+                                    <div className="flex gap-6 pt-6 sticky bottom-0 bg-white dark:bg-[#1e293b] py-6 border-t border-slate-100 dark:border-slate-800">
+                                        <button type="button" onClick={() => setIsRecipeModalOpen(false)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black uppercase text-xs tracking-widest rounded-3xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Close</button>
+                                        <button
+                                            type="submit" disabled={isRecipeSaving}
+                                            className="flex-[2] py-5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-xs tracking-[0.2em] rounded-3xl shadow-2xl shadow-indigo-600/30 flex items-center justify-center space-x-3 transition-all active:scale-[0.98] disabled:opacity-50"
+                                        >
+                                            {isRecipeSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                            <span>{isRecipeSaving ? 'Processing...' : (editingRecipe ? 'Apply Changes' : 'Authorize & Save Recipe')}</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

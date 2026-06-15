@@ -124,7 +124,8 @@ const RecipeManagement = () => {
                             RECD_UNIT: d.RECD_UNIT,
                             RECD_REMARKS: d.RECD_REMARKS,
                             displayUnit,
-                            displayQty: displayQty % 1 === 0 ? displayQty.toString() : displayQty.toFixed(3)
+                            displayQty: displayQty % 1 === 0 ? displayQty.toString() : displayQty.toFixed(3),
+                            checked: d.include !== 0
                         };
                     })
                 });
@@ -148,7 +149,7 @@ const RecipeManagement = () => {
     const handleAddItem = () => {
         setFormData(prev => ({
             ...prev,
-            items: [...prev.items, { RECD_RAW_METERIAL_ID: '', RECD_QTY: 0, RECD_UNIT: '', RECD_REMARKS: '', displayQty: '', displayUnit: '' }]
+            items: [...prev.items, { RECD_RAW_METERIAL_ID: '', RECD_QTY: 0, RECD_UNIT: '', RECD_REMARKS: '', displayQty: '', displayUnit: '', checked: true }]
         }));
     };
 
@@ -264,7 +265,14 @@ const RecipeManagement = () => {
         }
 
         setIsSaving(true);
-        const finalData = { ...formData, RECH_MADE_QTY: 1 };
+        const finalData = { 
+            ...formData, 
+            RECH_MADE_QTY: 1,
+            items: formData.items.map(item => ({
+                ...item,
+                include: item.checked !== false ? 1 : 0
+            }))
+        };
         try {
             if (editingRecipe) {
                 await api.put(`/recipe/${editingRecipe.RECH_ID}`, finalData);
@@ -622,6 +630,14 @@ const RecipeManagement = () => {
                                                 )}
                                                 {formData.items.map((item, index) => (
                                                     <div key={index} className="flex gap-4 p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl animate-in slide-in-from-right-4 duration-300">
+                                                        <div className="flex items-center justify-center pr-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.checked !== false}
+                                                                onChange={(e) => handleItemChange(index, 'checked', e.target.checked)}
+                                                                className="w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                            />
+                                                        </div>
                                                         <div className="flex-1 space-y-4">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 <SearchableSelect
@@ -781,9 +797,17 @@ const RecipeManagement = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {viewingDetails.map((item, idx) => (
                                             <div key={idx} className="p-5 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">{item.material_name}</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.material_code}</p>
+                                                <div className="flex items-center space-x-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.include !== 0}
+                                                        disabled
+                                                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 cursor-not-allowed"
+                                                    />
+                                                    <div>
+                                                        <p className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1">{item.material_name}</p>
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{item.material_code}</p>
+                                                    </div>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-base font-black text-blue-600 dark:text-blue-400 tracking-tighter">
