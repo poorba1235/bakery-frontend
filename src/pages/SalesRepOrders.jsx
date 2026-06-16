@@ -151,10 +151,12 @@ const SalesRepOrders = () => {
         try {
             const res = await api.get(`/sales-rep-orders/${orderId}`);
             setActiveOrder(res.data.header);
-            // Default distributed qty to requested qty
+            // Default distributed qty to requested qty if order is pending
             setDistributeDetails(res.data.details.map(d => ({
                 ...d,
-                SROD_DISTRIBUTED_QTY: d.SROD_DISTRIBUTED_QTY !== null ? d.SROD_DISTRIBUTED_QTY : d.SROD_REQUESTED_QTY
+                SROD_DISTRIBUTED_QTY: res.data.header.SROH_STATUS === 0 
+                    ? d.SROD_REQUESTED_QTY 
+                    : (d.SROD_DISTRIBUTED_QTY !== null ? d.SROD_DISTRIBUTED_QTY : d.SROD_REQUESTED_QTY)
             })));
             setIsDistributeModalOpen(true);
         } catch (error) {
