@@ -274,6 +274,14 @@ const OrderManagement = () => {
                         expDateStr = getSriLankaDate(expDate);
                     }
 
+                    let bagPrefs = null;
+                    try {
+                        const savedBagPrefs = localStorage.getItem(`orderBagPref_${pIdStr}`);
+                        if (savedBagPrefs) {
+                            bagPrefs = JSON.parse(savedBagPrefs);
+                        }
+                    } catch (e) {}
+
                     initial[pIdStr] = {
                         checked: false,
                         OD_PRODUCT_ID: pIdStr,
@@ -282,10 +290,10 @@ const OrderManagement = () => {
                         OD_UNIT_WHOLE_SALE_PRICE: (p.last_wholesale_price || p.P_WHOLE_SALE_PRICE || '').toString(),
                         OD_UNIT_COST_PRICE: (p.P_COST_PRICE || '').toString(),
                         LOCATIONID: defaultLocId,
-                        BAG_ISSUED: 0,
-                        BAG_RM_ID: '',
-                        BAG_SIZE: '',
-                        BAG_QTY: '1',
+                        BAG_ISSUED: bagPrefs?.BAG_ISSUED ?? 0,
+                        BAG_RM_ID: bagPrefs?.BAG_RM_ID?.toString() || '',
+                        BAG_SIZE: bagPrefs?.BAG_SIZE || '',
+                        BAG_QTY: bagPrefs?.BAG_QTY?.toString() || '1',
                         OD_MFG_DATE: mfgDateStr,
                         OD_EXP_DATE: expDateStr,
                         OD_UNIT_SELLING_PRICE: (p.last_selling_price || '').toString(),
@@ -565,6 +573,25 @@ const OrderManagement = () => {
                 showNotification('Order created successfully', 'success');
                 savedOrderId = res.data?.id || null;
             }
+
+            // Save bag preferences for auto-fill on next order
+            selectedItems.forEach(item => {
+                if (item.BAG_ISSUED === 1) {
+                    try {
+                        localStorage.setItem(`orderBagPref_${item.OD_PRODUCT_ID}`, JSON.stringify({
+                            BAG_ISSUED: item.BAG_ISSUED,
+                            BAG_RM_ID: item.BAG_RM_ID,
+                            BAG_SIZE: item.BAG_SIZE,
+                            BAG_QTY: item.BAG_QTY
+                        }));
+                    } catch(e) {
+                        console.error('Failed to save bag preference', e);
+                    }
+                } else {
+                    localStorage.removeItem(`orderBagPref_${item.OD_PRODUCT_ID}`);
+                }
+            });
+
             setIsAddModalOpen(false);
             setEditingOrder(null);
             setNewOrder({

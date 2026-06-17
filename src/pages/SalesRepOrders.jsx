@@ -37,6 +37,7 @@ const SalesRepOrders = () => {
 
     // Create Modal States
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [productSearch, setProductSearch] = useState('');
     const [formData, setFormData] = useState({
         SR_ID: '',
         SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
@@ -78,6 +79,7 @@ const SalesRepOrders = () => {
             SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
             details: []
         });
+        setProductSearch('');
         setIsCreateModalOpen(true);
     };
 
@@ -386,61 +388,77 @@ const SalesRepOrders = () => {
                                 <div className="space-y-4">
                                     <div className="flex items-end gap-2">
                                         <div className="flex-1">
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Add Product</label>
-                                            <select 
-                                                className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500"
-                                                onChange={(e) => {
-                                                    if(e.target.value) {
-                                                        addProductToOrder(e.target.value);
-                                                        e.target.value = '';
-                                                    }
-                                                }}
-                                            >
-                                                <option value="">Select a product to add...</option>
-                                                {products.map(p => (
-                                                    <option key={p.P_ID} value={p.P_ID}>{p.P_NAME} ({p.P_CODE})</option>
-                                                ))}
-                                            </select>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Products</label>
+                                            <div className="relative group">
+                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Filter products by name or code..."
+                                                    value={productSearch}
+                                                    onChange={(e) => setProductSearch(e.target.value)}
+                                                    className="w-full pl-11 pr-6 py-3 bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl outline-none text-sm font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {formData.details.length > 0 && (
-                                        <div className="border border-slate-200 dark:border-[#334155] rounded-xl overflow-hidden">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-slate-50 dark:bg-[#0f172a]">
-                                                    <tr className="text-xs font-black uppercase text-slate-500 tracking-wider">
-                                                        <th className="px-4 py-3">Product Name</th>
-                                                        <th className="px-4 py-3 w-32">Req. Qty</th>
-                                                        <th className="px-4 py-3 w-16"></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
-                                                    {formData.details.map(item => (
-                                                        <tr key={item.P_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
+                                    <div className="border border-slate-200 dark:border-[#334155] rounded-xl overflow-hidden max-h-96 overflow-y-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-50 dark:bg-[#0f172a] sticky top-0 z-10 shadow-sm">
+                                                <tr className="text-xs font-black uppercase text-slate-500 tracking-wider">
+                                                    <th className="px-4 py-3">Product Name</th>
+                                                    <th className="px-4 py-3 w-32 text-center">Req. Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
+                                                {products.filter(p => p.P_NAME?.toLowerCase().includes(productSearch.toLowerCase()) || p.P_CODE?.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
+                                                    const existingDetail = formData.details.find(d => d.P_ID === p.P_ID);
+                                                    const qty = existingDetail ? existingDetail.SROD_REQUESTED_QTY : '';
+                                                    return (
+                                                        <tr key={p.P_ID} className={`transition-colors ${existingDetail ? 'bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-[#0f172a]/50'}`}>
                                                             <td className="px-4 py-3">
-                                                                <div className="font-bold text-slate-800 dark:text-white">{item.P_NAME}</div>
-                                                                <div className="text-xs text-slate-500">{item.P_CODE}</div>
+                                                                <div className="font-bold text-slate-800 dark:text-white">{p.P_NAME}</div>
+                                                                <div className="text-xs text-slate-500">{p.P_CODE}</div>
                                                             </td>
                                                             <td className="px-4 py-3">
                                                                 <input 
-                                                                    type="number" 
-                                                                    min="1"
-                                                                    value={item.SROD_REQUESTED_QTY}
-                                                                    onChange={(e) => updateProductQty(item.P_ID, e.target.value)}
-                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1 px-2 text-center font-bold text-slate-700 dark:text-white"
+                                                                    type="text" 
+                                                                    inputMode="numeric"
+                                                                    placeholder="0"
+                                                                    value={qty}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                        if (val === '' || parseInt(val) === 0) {
+                                                                            removeProduct(p.P_ID);
+                                                                        } else {
+                                                                            if (existingDetail) {
+                                                                                updateProductQty(p.P_ID, val);
+                                                                            } else {
+                                                                                setFormData(prev => ({
+                                                                                    ...prev,
+                                                                                    details: [
+                                                                                        ...prev.details,
+                                                                                        {
+                                                                                            P_ID: p.P_ID,
+                                                                                            P_NAME: p.P_NAME,
+                                                                                            P_CODE: p.P_CODE,
+                                                                                            SROD_REQUESTED_QTY: val,
+                                                                                            C_ID: null
+                                                                                        }
+                                                                                    ]
+                                                                                }));
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-2 px-3 text-center font-bold text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-3 text-right">
-                                                                <button type="button" onClick={() => removeProduct(item.P_ID)} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </td>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </form>
                             
