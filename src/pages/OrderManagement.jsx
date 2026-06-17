@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     ArrowRight,
-    Calculator,
     Calendar,
     CheckCircle,
     ChevronLeft,
@@ -280,7 +279,7 @@ const OrderManagement = () => {
                         if (savedBagPrefs) {
                             bagPrefs = JSON.parse(savedBagPrefs);
                         }
-                    } catch (e) {}
+                    } catch (e) { }
 
                     initial[pIdStr] = {
                         checked: false,
@@ -584,7 +583,7 @@ const OrderManagement = () => {
                             BAG_SIZE: item.BAG_SIZE,
                             BAG_QTY: item.BAG_QTY
                         }));
-                    } catch(e) {
+                    } catch (e) {
                         console.error('Failed to save bag preference', e);
                     }
                 } else {
@@ -1010,7 +1009,7 @@ const OrderManagement = () => {
                                                                         {/* Base Tiers (LKR) */}
                                                                         <td className="px-6 py-4.5">
                                                                             <div className="flex flex-col gap-2 w-56">
-                                                                               
+
                                                                                 <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Shop</span>
                                                                                     <input
@@ -1030,7 +1029,7 @@ const OrderManagement = () => {
                                                                                     />
                                                                                 </div>
 
-                                                                                 <div className="flex items-center space-x-2">
+                                                                                <div className="flex items-center space-x-2">
                                                                                     <span className="text-[10px] text-slate-400 font-bold uppercase w-16">Selling</span>
                                                                                     <input
                                                                                         type="text"
