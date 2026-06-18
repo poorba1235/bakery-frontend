@@ -64,90 +64,110 @@ class QZPrintService {
                 }
             }
 
-            // 2. Select receipt config (Standard 80mm continuous roll configurations)
             const config = qz.configs.create(activePrinterName, {
-                raster: false, // Use high-speed raw ESC/POS text command codes
-                encoding: 'UTF-8',
-                margins: 0
+                margins: { top: 0, right: 0, bottom: 0, left: 0 },
+                colorType: 'grayscale',
+                density: 203 // Standard thermal printer DPI
             });
 
-            // ESC/POS Command sequences
-            const ESC = '\x1b';
-            const GS = '\x1d';
+            // Generate HTML string for the receipt
+            let htmlContent = `
+                <html>
+                <head>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap');
+                        body { 
+                            font-family: 'Noto Sans Sinhala', sans-serif, Arial; 
+                            margin: 0; 
+                            padding: 10px 5px; 
+                            width: 58mm; /* 2 inch roll */
+                            font-size: 11px;
+                            color: black;
+                            background: white;
+                        }
+                        .text-center { text-align: center; }
+                        .text-right { text-align: right; }
+                        .font-bold { font-weight: bold; }
+                        .text-lg { font-size: 16px; }
+                        .text-sm { font-size: 9px; }
+                        .flex-between { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                        .divider { border-bottom: 1px dashed black; margin: 5px 0; }
+                        table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+                        th, td { text-align: left; vertical-align: top; padding: 2px 0; }
+                        th:nth-child(2), td:nth-child(2) { text-align: center; }
+                        th:last-child, td:last-child { text-align: right; }
+                        .item-name { max-width: 35mm; overflow: hidden; }
+                    </style>
+                </head>
+                <body>
+                    <div class="text-center font-bold text-lg">INDIKA BAKERS</div>
+                    <div class="text-center text-sm">Mehiellagama, Hiripitiya,</div>
+                    <div class="text-center text-sm">Nikadalupotha</div>
+                    <div class="text-center text-sm">Tel: 071660 0165</div>
+                    
+                    <div class="divider"></div>
+                    
+                    <div class="text-sm">
+                        <div class="flex-between"><span>Invoice:</span><span class="font-bold">${sale.invoiceNo}</span></div>
+                        <div class="flex-between"><span>Date:</span><span>${new Date(sale.date).toLocaleString()}</span></div>
+                        <div class="flex-between"><span>Cashier:</span><span>${sale.cashier.toUpperCase()}</span></div>
+                        <div class="flex-between"><span>Customer:</span><span>${sale.customerName}</span></div>
+                        <div class="flex-between"><span>Payment:</span><span class="font-bold">${(sale.paymentMethod || 'CASH').toUpperCase()}</span></div>
+                    </div>
 
-            const commands = {
-                INIT: ESC + '@',
-                ALIGN_CENTER: ESC + 'a\x01',
-                ALIGN_LEFT: ESC + 'a\x00',
-                ALIGN_RIGHT: ESC + 'a\x02',
-                BOLD_ON: ESC + 'E\x01',
-                BOLD_OFF: ESC + 'E\x00',
-                SIZE_NORMAL: GS + '!\x00',
-                SIZE_DOUBLE: GS + '!\x11',
-                CUT: GS + 'V\x00'
-            };
+                    <div class="divider"></div>
 
-            // 3. Compile receipt formatting lines
-            const data = [];
-            data.push(commands.INIT);
+                    <table>
+                        <thead>
+                            <tr class="font-bold">
+                                <th>ITEM</th>
+                                <th>QTY</th>
+                                <th>TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
 
-            // Header
-            data.push(commands.ALIGN_CENTER);
-            data.push(commands.BOLD_ON);
-            data.push(commands.SIZE_DOUBLE);
-            data.push('INDIKA BAKERS\n');
-            data.push(commands.SIZE_NORMAL);
-            data.push(commands.BOLD_OFF);
-            data.push('Mehiellagama, Hiripitiya, Nikadalupotha\n');
-            data.push('Tel: 071660 0165\n');
-            data.push('--------------------------------\n');
-
-            // Metadata
-            data.push(commands.ALIGN_LEFT);
-            data.push(`Invoice No : ${sale.invoiceNo}\n`);
-            data.push(`Date & Time: ${new Date(sale.date).toLocaleString()}\n`);
-            data.push(`Cashier    : ${sale.cashier}\n`);
-            data.push(`Customer   : ${sale.customerName}\n`);
-            data.push('--------------------------------\n');
-
-            // Grid header
-            data.push(commands.BOLD_ON);
-            data.push('ITEM            QTY     TOTAL\n');
-            data.push(commands.BOLD_OFF);
-
-            // Loop items
             const items = sale.items || [];
             items.forEach(item => {
-                const name = (item.P_NAME || item.product_name || 'Bakery Item').substring(0, 15).padEnd(15, ' ');
-                const qty = item.qty.toString().padStart(3, ' ');
-                const total = `Rs.${(item.qty * item.unitPrice).toFixed(0)}`.padStart(12, ' ');
-                data.push(`${name} ${qty} ${total}\n`);
+                const name = item.P_NAME_SINAHAL || item.P_NAME || item.product_name || 'Bakery Item';
+                htmlContent += `
+                    <tr>
+                        <td class="item-name">${name}</td>
+                        <td>${item.qty}</td>
+                        <td>Rs.${(item.qty * item.unitPrice).toFixed(0)}</td>
+                    </tr>
+                `;
             });
-            data.push('--------------------------------\n');
 
-            // Totals
-            data.push(commands.ALIGN_RIGHT);
-            data.push(`SUBTOTAL: Rs.${sale.subtotal.toFixed(2)}\n`);
-            if (sale.discount > 0) {
-                data.push(`DISCOUNT: -Rs.${sale.discount.toFixed(2)}\n`);
-            }
-            data.push(commands.BOLD_ON);
-            data.push(`NET TOTAL: Rs.${sale.netAmount.toFixed(2)}\n`);
-            data.push(commands.BOLD_OFF);
-            data.push(`PAID CASH: Rs.${sale.amountTendered.toFixed(2)}\n`);
-            data.push(`CHANGE   : Rs.${sale.amountChange.toFixed(2)}\n`);
-            data.push('--------------------------------\n');
+            htmlContent += `
+                        </tbody>
+                    </table>
 
-            // Footer
-            data.push(commands.ALIGN_CENTER);
-            data.push(commands.BOLD_ON);
-            data.push('THANK YOU FOR SHOPPING!\n');
-            data.push(commands.BOLD_OFF);
-            data.push('Indika Bakers - Sweetening Your Day!\n');
+                    <div class="divider"></div>
 
-            // Feed & Cut commands
-            data.push('\n\n\n\n');
-            data.push(commands.CUT);
+                    <div class="flex-between"><span>SUBTOTAL:</span><span>Rs. ${sale.subtotal.toFixed(2)}</span></div>
+                    ${sale.discount > 0 ? `<div class="flex-between"><span>DISCOUNT:</span><span>-Rs. ${sale.discount.toFixed(2)}</span></div>` : ''}
+                    <div class="flex-between font-bold"><span>NET TOTAL:</span><span>Rs. ${sale.netAmount.toFixed(2)}</span></div>
+                    <div class="flex-between"><span>PAID ${(sale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. ${sale.amountTendered.toFixed(2)}</span></div>
+                    <div class="flex-between font-bold"><span>CHANGE:</span><span>Rs. ${sale.amountChange.toFixed(2)}</span></div>
+
+                    <div class="divider"></div>
+
+                    <div class="text-center font-bold text-sm">THANK YOU FOR SHOPPING!</div>
+                    <div class="text-center text-sm" style="margin-bottom: 20px;">Indika Bakers - Sweetening Your Day!</div>
+                </body>
+                </html>
+            `;
+
+            const data = [
+                {
+                    type: 'pixel',
+                    format: 'html',
+                    flavor: 'plain',
+                    data: htmlContent
+                }
+            ];
 
             // 4. Send binary spool block silently to local printer via QZ Tray loopback
             await qz.print(config, data);

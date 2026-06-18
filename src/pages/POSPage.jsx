@@ -325,7 +325,9 @@ const POSPage = () => {
     };
 
     const getNetTotal = () => {
-        return Math.max(0, getSubtotal() - parseFloat(discount || 0));
+        const subtotal = getSubtotal();
+        const discountAmount = subtotal * ((parseFloat(discount) || 0) / 100);
+        return Math.max(0, subtotal - discountAmount);
     };
 
     const getChange = () => {
@@ -357,9 +359,9 @@ const POSPage = () => {
         const targetSale = saleData && saleData.invoiceNo ? saleData : completedSale;
         if (!targetSale) return;
 
-        // Set dimensions: Standard thermal paper is 80mm wide
+        // Set dimensions: Standard 2-inch thermal paper is 58mm wide
         // Height scales dynamically: ~8mm per checkout item row + padding bounds
-        const width = 80;
+        const width = 58;
         const height = Math.max(120, targetSale.items.length * 8 + 90);
         const doc = new jsPDF({
             orientation: 'portrait',
@@ -371,93 +373,109 @@ const POSPage = () => {
         doc.setFont('Courier', 'bold');
         doc.setFontSize(12);
 
-        let y = 10;
+        let y = 2;
+
+        // Try to fetch the logo from the DOM to embed it
+        const logoImg = document.getElementById('receipt-logo-img');
+        if (logoImg) {
+            const logoSize = 8; // 8mm x 8mm
+            const logoX = (width / 2) - (logoSize / 2);
+            doc.addImage(logoImg, 'PNG', logoX, y, logoSize, logoSize);
+            y += logoSize + 4;
+        } else {
+            y = 10;
+        }
+
         // Brand Header
         doc.text("INDIKA BAKERS", width / 2, y, { align: 'center' });
 
         doc.setFont('Courier', 'normal');
         doc.setFontSize(8);
         y += 4;
-        doc.text("Mehiellagama, Hiripitiya, Nikadalupotha", width / 2, y, { align: 'center' });
+        doc.text("Mehiellagama, Hiripitiya,", width / 2, y, { align: 'center' });
+        y += 3;
+        doc.text("Nikadalupotha", width / 2, y, { align: 'center' });
         y += 3;
         doc.text("Tel: 071660 0165", width / 2, y, { align: 'center' });
 
         y += 3;
-        doc.text("------------------------------------------", width / 2, y, { align: 'center' });
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Metadata grid
+        doc.setFontSize(7);
         y += 4;
         doc.text(`Invoice No:  ${targetSale.invoiceNo}`, 5, y);
-        y += 3.5;
+        y += 3;
         doc.text(`Date & Time: ${new Date(targetSale.date).toLocaleString()}`, 5, y);
-        y += 3.5;
+        y += 3;
         doc.text(`Cashier:     ${targetSale.cashier.toUpperCase()}`, 5, y);
-        y += 3.5;
-        y += 3.5;
+        y += 3;
         doc.text(`Customer:    ${targetSale.customerName}`, 5, y);
-        y += 3.5;
-        doc.setFont('Courier', 'bold');
+        y += 3;
+        doc.setFont('Courier');
         doc.text(`Payment:     ${(targetSale.paymentMethod || 'CASH').toUpperCase()}`, 5, y);
         doc.setFont('Courier', 'normal');
+        doc.setFontSize(8);
 
         y += 3;
-        doc.text("------------------------------------------", width / 2, y, { align: 'center' });
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Table Header
         y += 4;
         doc.setFont('Courier', 'bold');
         doc.text("ITEM", 5, y);
-        doc.text("QTY", 52, y);
-        doc.text("TOTAL", 75, y, { align: 'right' });
+        doc.text("QTY", 35, y);
+        doc.text("TOTAL", 53, y, { align: 'right' });
 
         y += 2.5;
         doc.setFont('Courier', 'normal');
-        doc.text("------------------------------------------", width / 2, y, { align: 'center' });
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Print table rows
         targetSale.items.forEach(item => {
             y += 4;
-            // Truncate item name cleanly to avoid wrapping overlaps on standard 80mm roll width
-            const displayName = item.P_NAME.length > 22 ? item.P_NAME.substring(0, 20) + ".." : item.P_NAME;
+            // Truncate item name cleanly to avoid wrapping overlaps on standard 58mm roll width
+            const rawName = item.P_NAME_SINAHAL || item.P_NAME;
+            const displayName = rawName.length > 15 ? rawName.substring(0, 13) + ".." : rawName;
             doc.text(displayName, 5, y);
-            doc.text(item.qty.toString(), 53, y);
+            doc.text(item.qty.toString(), 36, y);
 
             const totalStr = `Rs.${(item.qty * item.unitPrice).toFixed(0)}`;
-            doc.text(totalStr, 75, y, { align: 'right' });
+            doc.text(totalStr, 53, y, { align: 'right' });
         });
 
         y += 3;
-        doc.text("------------------------------------------", width / 2, y, { align: 'center' });
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Finance calculations
         y += 4;
         doc.text(`SUBTOTAL:`, 5, y);
-        doc.text(`Rs. ${targetSale.subtotal.toFixed(2)}`, 75, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.subtotal.toFixed(2)}`, 53, y, { align: 'right' });
 
         if (targetSale.discount > 0) {
             y += 3.5;
             doc.text(`DISCOUNT:`, 5, y);
-            doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, 75, y, { align: 'right' });
+            doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, 53, y, { align: 'right' });
         }
 
         y += 4;
         doc.setFont('Courier', 'bold');
         doc.text(`NET TOTAL:`, 5, y);
-        doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, 75, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 3.5;
         doc.setFont('Courier', 'normal');
-        doc.text(`PAID CASH:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, 75, y, { align: 'right' });
+        doc.text(`PAID ${(targetSale.paymentMethod || 'CASH').toUpperCase()}:`, 5, y);
+        doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 4;
         doc.setFont('Courier', 'bold');
         doc.text(`CHANGE:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, 75, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 3;
         doc.setFont('Courier', 'normal');
-        doc.text("------------------------------------------", width / 2, y, { align: 'center' });
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Store slogan footer
         y += 5;
@@ -465,7 +483,6 @@ const POSPage = () => {
         doc.text("THANK YOU FOR SHOPPING!", width / 2, y, { align: 'center' });
         y += 3.5;
         doc.setFont('Courier', 'normal');
-        doc.text("Indika Bakers - Sweetening Your Day!", width / 2, y, { align: 'center' });
 
         // Save native PDF download stream
         doc.save(`Receipt_${targetSale.invoiceNo}.pdf`);
@@ -639,13 +656,13 @@ const POSPage = () => {
                     unitPrice: item.unitPrice,
                     unit: item.P_UNIT || 'Pcs'
                 })),
-                discount: parseFloat(discount) || 0,
+                discountPercentage: parseFloat(discount) || 0,
                 paymentMethod,
                 customerName
             };
-            // const response = await api.post('/pos/sales', saleData);
-            // Mock response for frontend testing
-            const response = { data: { invoiceNo: 'TEST-' + Math.floor(Math.random() * 10000) } };
+            const response = await api.post('/pos/sales', saleData);
+
+            const discountAmount = getSubtotal() * ((parseFloat(discount) || 0) / 100);
 
             const completed = {
                 invoiceNo: response.data.invoiceNo,
@@ -654,7 +671,7 @@ const POSPage = () => {
                 customerName,
                 paymentMethod,
                 subtotal: getSubtotal(),
-                discount: parseFloat(discount) || 0,
+                discount: discountAmount,
                 netAmount: netTotal,
                 amountTendered: paymentMethod === 'Cash' ? tendered : netTotal,
                 amountChange: paymentMethod === 'Cash' ? Math.max(0, getChange()) : 0,
@@ -795,7 +812,7 @@ const POSPage = () => {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @page {
-                    size: 80mm auto; /* Exactly 8cm width and unlimited/auto height based on rows content */
+                    size: 58mm auto; /* Exactly 58mm (2 inch) width and unlimited/auto height based on rows content */
                     margin: 0 !important;
                 }
                 @media print {
@@ -842,8 +859,8 @@ const POSPage = () => {
                         top: 0 !important;
                         left: 2% !important;
                         display: block !important;
-                        width: 80mm !important;
-                        max-width: 80mm !important;
+                        width: 58mm !important;
+                        max-width: 58mm !important;
                         height: auto !important;
                         margin: 0 !important;
                         padding: 1mm !important;
@@ -1236,15 +1253,16 @@ const POSPage = () => {
                                 />
                             </div>
                             <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Discount (Rs)</label>
+                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Discount (%)</label>
                                 <input
                                     type="number"
                                     min="0"
+                                    max="100"
                                     value={discount || ''}
-                                    onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                                    onChange={(e) => setDiscount(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
                                     onFocus={(e) => e.target.select()}
                                     className="w-full px-2.5 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-right"
-                                    placeholder="0.00"
+                                    placeholder="0%"
                                 />
                             </div>
                         </div>
@@ -1337,8 +1355,8 @@ const POSPage = () => {
                                 <span>Rs. {getSubtotal().toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-[10px] text-red-400 font-bold border-b border-[#334155] pb-1.5">
-                                <span>FLAT DISCOUNT:</span>
-                                <span>- Rs. {parseFloat(discount || 0).toFixed(2)}</span>
+                                <span>DISCOUNT ({parseFloat(discount || 0)}%):</span>
+                                <span>- Rs. {(getSubtotal() * ((parseFloat(discount) || 0) / 100)).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-base font-black text-emerald-400 pt-0.5">
                                 <span>NET TOTAL:</span>
@@ -1548,7 +1566,7 @@ const POSPage = () => {
                     {/* Footer note */}
                     <div style={{ textAlign: 'center', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <span style={{ fontSize: '10px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
-                        <span style={{ fontSize: '9px', color: 'gray' }}>Indika Bakers - Sweetening Your Day!</span>
+
                     </div>
 
                 </div>
@@ -1574,14 +1592,15 @@ const POSPage = () => {
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[linear-gradient(45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%)] bg-[size:6px_6px]"></div>
 
                             <div className="text-center font-bold mb-2 pt-1 flex flex-col items-center">
-                                <img src="/logo.png" alt="Logo" className="h-8 w-auto mb-1 opacity-90 grayscale" />
+                                <img id="receipt-logo-img" src="/logo.png" alt="Logo" className="h-5 w-auto mb-1 opacity-90 grayscale" crossOrigin="anonymous" />
                                 <span className="text-[14px] tracking-wide block">INDIKA BAKERS</span>
-                                <span className="text-[9px] block text-slate-500">Mehiellagama, Hiripitiya, Nikadalupotha</span>
+                                <span className="text-[9px] block text-slate-500 leading-tight">Mehiellagama, Hiripitiya,</span>
+                                <span className="text-[9px] block text-slate-500 leading-tight">Nikadalupotha</span>
                                 <span className="text-[9px] block text-slate-500">Tel: 071660 0165</span>
                                 <div className="border-b border-dashed border-black my-1.5"></div>
                             </div>
 
-                            <div className="flex flex-col gap-1 text-[9.5px]">
+                            <div className="flex flex-col gap-0.5 text-[7.5px] leading-tight">
                                 <div className="flex justify-between"><span>Invoice:</span><strong>{completedSale.invoiceNo}</strong></div>
                                 <div className="flex justify-between"><span>Date:</span><span>{new Date(completedSale.date).toLocaleString()}</span></div>
                                 <div className="flex justify-between"><span>Cashier:</span><span className="capitalize">{completedSale.cashier}</span></div>
@@ -1602,7 +1621,7 @@ const POSPage = () => {
                             <div className="flex flex-col gap-1">
                                 {completedSale.items.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 leading-tight">
-                                        <span className="col-span-7 truncate pr-1">{item.P_NAME}</span>
+                                        <span className="col-span-7 truncate pr-1">{item.P_NAME_SINAHAL || item.P_NAME}</span>
                                         <span className="col-span-2 text-center">{item.qty}</span>
                                         <span className="col-span-3 text-right">Rs.{(item.qty * item.unitPrice).toFixed(0)}</span>
                                     </div>
@@ -1616,7 +1635,7 @@ const POSPage = () => {
                                 <div className="flex justify-between"><span>SUBTOTAL:</span><span>Rs. {completedSale.subtotal.toFixed(2)}</span></div>
                                 {completedSale.discount > 0 && <div className="flex justify-between text-red-600"><span>DISCOUNT:</span><span>-Rs. {completedSale.discount.toFixed(2)}</span></div>}
                                 <div className="flex justify-between font-bold text-[11px]"><span>NET TOTAL:</span><span>Rs. {completedSale.netAmount.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span>PAID CASH:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
+                                <div className="flex justify-between"><span>PAID {(completedSale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
                                 <div className="flex justify-between font-bold text-emerald-600"><span>Balance:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
                             </div>
 
