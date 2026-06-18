@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
+import { sinhalaFontBase64 } from '../utils/SinhalaFont';
 import {
     AlertTriangle,
     CheckCircle,
@@ -369,9 +370,14 @@ const POSPage = () => {
             format: [width, height]
         });
 
-        // Use Courier (built-in monospace font) for flawless alignment
-        doc.setFont('Courier', 'bold');
-        doc.setFontSize(12);
+        // Embed and register the native Sinhala font
+        doc.addFileToVFS("SinhalaFont.ttf", sinhalaFontBase64);
+        doc.addFont("SinhalaFont.ttf", "Sinhala", "normal");
+        doc.addFont("SinhalaFont.ttf", "Sinhala", "bold");
+
+        // Use Sinhala font for flawless alignment
+        doc.setFont('Sinhala', 'bold');
+        doc.setFontSize(10);
 
         let y = 2;
 
@@ -389,7 +395,7 @@ const POSPage = () => {
         // Brand Header
         doc.text("INDIKA BAKERS", width / 2, y, { align: 'center' });
 
-        doc.setFont('Courier', 'normal');
+        doc.setFont('Sinhala', 'normal');
         doc.setFontSize(8);
         y += 4;
         doc.text("Mehiellagama, Hiripitiya,", width / 2, y, { align: 'center' });
@@ -412,9 +418,9 @@ const POSPage = () => {
         y += 3;
         doc.text(`Customer:    ${targetSale.customerName}`, 5, y);
         y += 3;
-        doc.setFont('Courier');
+        doc.setFont('Sinhala', 'normal');
         doc.text(`Payment:     ${(targetSale.paymentMethod || 'CASH').toUpperCase()}`, 5, y);
-        doc.setFont('Courier', 'normal');
+        doc.setFont('Sinhala', 'normal');
         doc.setFontSize(8);
 
         y += 3;
@@ -422,14 +428,14 @@ const POSPage = () => {
 
         // Table Header
         y += 4;
-        doc.setFont('Courier', 'bold');
+        doc.setFont('Sinhala', 'bold');
         doc.text("ITEM", 5, y);
         doc.text("QTY", 35, y);
         doc.text("TOTAL", 53, y, { align: 'right' });
 
         y += 2.5;
-        doc.setFont('Courier', 'normal');
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.setFont('Sinhala', 'no            const rawName = item.P_NAME_SINAHAL || '';
+th / 2, y, { align: 'center' });
 
         // Print table rows
         targetSale.items.forEach(item => {
@@ -459,30 +465,30 @@ const POSPage = () => {
         }
 
         y += 4;
-        doc.setFont('Courier', 'bold');
+        doc.setFont('Sinhala', 'bold');
         doc.text(`NET TOTAL:`, 5, y);
         doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 3.5;
-        doc.setFont('Courier', 'normal');
+        doc.setFont('Sinhala', 'normal');
         doc.text(`PAID ${(targetSale.paymentMethod || 'CASH').toUpperCase()}:`, 5, y);
         doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 4;
-        doc.setFont('Courier', 'bold');
+        doc.setFont('Sinhala', 'bold');
         doc.text(`CHANGE:`, 5, y);
         doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, 53, y, { align: 'right' });
 
         y += 3;
-        doc.setFont('Courier', 'normal');
+        doc.setFont('Sinhala', 'normal');
         doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Store slogan footer
         y += 5;
-        doc.setFont('Courier', 'bold');
+        doc.setFont('Sinhala', 'bold');
         doc.text("THANK YOU FOR SHOPPING!", width / 2, y, { align: 'center' });
         y += 3.5;
-        doc.setFont('Courier', 'normal');
+        doc.setFont('Sinhala', 'normal');
 
         // Save native PDF download stream
         doc.save(`Receipt_${targetSale.invoiceNo}.pdf`);
@@ -1621,7 +1627,7 @@ const POSPage = () => {
                             <div className="flex flex-col gap-1">
                                 {completedSale.items.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 leading-tight">
-                                        <span className="col-span-7 truncate pr-1">{item.P_NAME_SINAHAL || item.P_NAME}</span>
+                                        <span className="col-span-7 truncate pr-1">{item.P_NAME}</span>
                                         <span className="col-span-2 text-center">{item.qty}</span>
                                         <span className="col-span-3 text-right">Rs.{(item.qty * item.unitPrice).toFixed(0)}</span>
                                     </div>
