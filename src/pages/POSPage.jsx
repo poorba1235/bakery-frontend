@@ -434,8 +434,8 @@ const POSPage = () => {
         doc.text("TOTAL", 53, y, { align: 'right' });
 
         y += 2.5;
-        doc.setFont('Sinhala', 'no            const rawName = item.P_NAME_SINAHAL || '';
-th / 2, y, { align: 'center' });
+        doc.setFont('Sinhala', 'normal');
+        doc.text("--------------------------------", width / 2, y, { align: 'center' });
 
         // Print table rows
         targetSale.items.forEach(item => {
