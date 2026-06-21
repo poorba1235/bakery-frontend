@@ -407,6 +407,7 @@ const SalesRepOrders = () => {
                                             <thead className="bg-slate-50 dark:bg-[#0f172a] sticky top-0 z-10 shadow-sm">
                                                 <tr className="text-xs font-black uppercase text-slate-500 tracking-wider">
                                                     <th className="px-4 py-3">Product Name</th>
+                                                    <th className="px-4 py-3 w-32 text-center">Pro Stock Qty</th>
                                                     <th className="px-4 py-3 w-32 text-center">Req. Qty</th>
                                                 </tr>
                                             </thead>
@@ -419,6 +420,11 @@ const SalesRepOrders = () => {
                                                             <td className="px-4 py-3">
                                                                 <div className="font-bold text-slate-800 dark:text-white">{p.P_NAME}</div>
                                                                 <div className="text-xs text-slate-500">{p.P_CODE}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <span className="font-mono font-bold text-slate-600 dark:text-slate-400">
+                                                                    {p.stock_balance || 0}
+                                                                </span>
                                                             </td>
                                                             <td className="px-4 py-3">
                                                                 <input 
