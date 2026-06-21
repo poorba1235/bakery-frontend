@@ -1,7 +1,7 @@
 {
   "name": "indika_bakery_frontend",
   "private": true,
-  "proxy": "http://79.108.225.152:8005",
+  "proxy": "http://79.143.176.33:8005",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
