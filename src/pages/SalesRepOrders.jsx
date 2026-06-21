@@ -177,6 +177,7 @@ const SalesRepOrders = () => {
         try {
             await api.put(`/sales-rep-orders/${activeOrder.SROH_ID}/status`, {
                 SROH_STATUS: 1, // 1 = Approved & Distributed
+                SROH_ORDER_FOR_DATE: activeOrder.SROH_ORDER_FOR_DATE,
                 distributedDetails: distributeDetails.map(d => ({
                     SROD_ID: d.SROD_ID,
                     SROD_DISTRIBUTED_QTY: d.SROD_DISTRIBUTED_QTY,
@@ -507,7 +508,16 @@ const SalesRepOrders = () => {
                                     </div>
                                     <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl border border-slate-200 dark:border-[#334155]">
                                         <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Order For</div>
-                                        <div className="font-bold text-slate-800 dark:text-white">{new Date(activeOrder.SROH_ORDER_FOR_DATE).toLocaleDateString()}</div>
+                                        {activeOrder.SROH_STATUS === 0 && isAdmin ? (
+                                            <input 
+                                                type="date" 
+                                                value={activeOrder.SROH_ORDER_FOR_DATE ? new Date(activeOrder.SROH_ORDER_FOR_DATE).toISOString().split('T')[0] : ''}
+                                                onChange={(e) => setActiveOrder({...activeOrder, SROH_ORDER_FOR_DATE: e.target.value})}
+                                                className="w-full bg-white dark:bg-[#1e293b] border border-indigo-300 dark:border-indigo-500/50 rounded-lg py-1 px-2 font-bold focus:ring-2 focus:ring-indigo-500 text-indigo-700 dark:text-indigo-400"
+                                            />
+                                        ) : (
+                                            <div className="font-bold text-slate-800 dark:text-white">{new Date(activeOrder.SROH_ORDER_FOR_DATE).toLocaleDateString()}</div>
+                                        )}
                                     </div>
                                 </div>
 
