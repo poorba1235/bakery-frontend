@@ -289,7 +289,7 @@ const OrderManagement = () => {
                         OD_UNIT_WHOLE_SALE_PRICE: (p.last_wholesale_price || p.P_WHOLE_SALE_PRICE || '').toString(),
                         OD_UNIT_COST_PRICE: (p.P_COST_PRICE || '').toString(),
                         LOCATIONID: defaultLocId,
-                        BAG_ISSUED: bagPrefs?.BAG_ISSUED ?? 0,
+                        BAG_ISSUED: bagPrefs?.BAG_ISSUED ?? (parseInt(p.P_ISSUE_BAG_status) === 1 ? 1 : 0),
                         BAG_RM_ID: bagPrefs?.BAG_RM_ID?.toString() || '',
                         BAG_SIZE: bagPrefs?.BAG_SIZE || '',
                         BAG_QTY: bagPrefs?.BAG_QTY?.toString() || '1',
@@ -907,8 +907,7 @@ const OrderManagement = () => {
                                                                 <th className="px-6 py-5 text-sm font-black w-60">Base Tiers (LKR)</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-52">Order Price (LKR)</th>
                                                                 <th className="px-6 py-5 text-sm font-black w-44">Dates (Mfg & Exp)</th>
-                                                                <th className="px-6 py-5 text-sm font-black w-24">Bag?</th>
-                                                                <th className="px-6 py-5 text-sm font-black w-44">Bag Details</th>
+
                                                                 <th className="px-6 py-5 text-sm font-black w-36">Total (LKR)</th>
                                                             </tr>
                                                         </thead>
@@ -972,6 +971,78 @@ const OrderManagement = () => {
                                                                                 )}
 
                                                                             </div>
+
+                                                                            {parseInt(p.P_ISSUE_BAG_status) === 1 && isChecked && (
+                                                                                <div className="mt-3 p-2 bg-slate-50 dark:bg-[#1e293b] rounded-lg border border-slate-200 dark:border-[#334155] w-48">
+                                                                                    <div className="flex items-center space-x-2 mb-2">
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            disabled={!isChecked}
+                                                                                            checked={row.BAG_ISSUED === 1}
+                                                                                            onChange={(e) => {
+                                                                                                const checked = e.target.checked;
+                                                                                                setModalItems(prev => ({
+                                                                                                    ...prev,
+                                                                                                    [pId]: {
+                                                                                                        ...prev[pId],
+                                                                                                        BAG_ISSUED: checked ? 1 : 0,
+                                                                                                        BAG_QTY: checked ? (prev[pId]?.OD_QTY || '1') : '1'
+                                                                                                    }
+                                                                                                }));
+                                                                                            }}
+                                                                                            className={`w-4 h-4 accent-indigo-600 rounded cursor-pointer ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                                        />
+                                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Issue Bag</span>
+                                                                                    </div>
+                                                                                    
+                                                                                    {row.BAG_ISSUED === 1 && isChecked && (
+                                                                                        <div className="flex flex-col gap-2">
+                                                                                            <select
+                                                                                                value={row.BAG_RM_ID || ''}
+                                                                                                onChange={(e) => {
+                                                                                                    const val = e.target.value;
+                                                                                                    const selectedRM = rawMaterials.find(rm => rm.RM_ID === parseInt(val));
+                                                                                                    setModalItems(prev => ({
+                                                                                                        ...prev,
+                                                                                                        [pId]: {
+                                                                                                            ...prev[pId],
+                                                                                                            BAG_RM_ID: val,
+                                                                                                            BAG_SIZE: selectedRM?.RM_NAME || ''
+                                                                                                        }
+                                                                                                    }));
+                                                                                                }}
+                                                                                                className="bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-md py-1.5 px-2 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-full"
+                                                                                            >
+                                                                                                <option value="">Select Bag...</option>
+                                                                                                {rawMaterials.filter(rm => rm.RM_MATERIAL_TYPE === 'Packaging').map(rm => (
+                                                                                                    <option key={rm.RM_ID} value={rm.RM_ID}>
+                                                                                                        {rm.RM_NAME} ({parseFloat(rm.total_stock || 0)})
+                                                                                                    </option>
+                                                                                                ))}
+                                                                                            </select>
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                inputMode="numeric"
+                                                                                                placeholder="Bag Qty"
+                                                                                                value={row.BAG_QTY || ''}
+                                                                                                onChange={(e) => {
+                                                                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                                                    setModalItems(prev => ({
+                                                                                                        ...prev,
+                                                                                                        [pId]: { ...prev[pId], BAG_QTY: val }
+                                                                                                    }));
+                                                                                                }}
+                                                                                                className="bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-md py-1.5 px-2 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50 w-full"
+                                                                                            />
+                                                                                            {row.BAG_RM_ID && parseFloat(row.BAG_QTY || 0) > parseFloat(rawMaterials.find(rm => rm.RM_ID === parseInt(row.BAG_RM_ID))?.total_stock || 0) && (
+                                                                                                <span className="text-[9px] font-black text-rose-500 animate-pulse mt-0.5 leading-tight">
+                                                                                                    ⚠️ Exceeds Stock
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </td>
 
                                                                         {/* Qty */}
@@ -1154,90 +1225,7 @@ const OrderManagement = () => {
                                                                             </div>
                                                                         </td>
 
-                                                                        {/* Bag Issued */}
-                                                                        <td className="px-6 py-4.5">
-                                                                            {parseInt(p.P_ISSUE_BAG_status) === 1 ? (
-                                                                                <div className="flex items-center space-x-2">
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        disabled={!isChecked}
-                                                                                        checked={row.BAG_ISSUED === 1}
-                                                                                        onChange={(e) => {
-                                                                                            const checked = e.target.checked;
-                                                                                            setModalItems(prev => ({
-                                                                                                ...prev,
-                                                                                                [pId]: {
-                                                                                                    ...prev[pId],
-                                                                                                    BAG_ISSUED: checked ? 1 : 0,
-                                                                                                    BAG_QTY: checked ? (prev[pId]?.OD_QTY || '1') : '1'
-                                                                                                }
-                                                                                            }));
-                                                                                        }}
-                                                                                        className={`w-5 h-5 accent-indigo-600 rounded cursor-pointer ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                                                    />
-                                                                                    <span className="text-xs font-bold text-slate-500 uppercase">Yes</span>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">N/A</span>
-                                                                            )}
-                                                                        </td>
 
-                                                                        {/* Bag Details */}
-                                                                        <td className="px-6 py-4.5">
-                                                                            {parseInt(p.P_ISSUE_BAG_status) === 1 && row.BAG_ISSUED === 1 && isChecked ? (
-                                                                                <div className="flex flex-col gap-2 w-36">
-                                                                                    <select
-                                                                                        value={row.BAG_RM_ID || ''}
-                                                                                        onChange={(e) => {
-                                                                                            const val = e.target.value;
-                                                                                            const selectedRM = rawMaterials.find(rm => rm.RM_ID === parseInt(val));
-                                                                                            setModalItems(prev => ({
-                                                                                                ...prev,
-                                                                                                [pId]: {
-                                                                                                    ...prev[pId],
-                                                                                                    BAG_RM_ID: val,
-                                                                                                    BAG_SIZE: selectedRM?.RM_NAME || ''
-                                                                                                }
-                                                                                            }));
-                                                                                        }}
-                                                                                        className="bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50"
-                                                                                    >
-                                                                                        <option value="">Select Bag</option>
-                                                                                        {rawMaterials.filter(rm => rm.RM_MATERIAL_TYPE === 'Packaging').map(rm => (
-                                                                                            <option key={rm.RM_ID} value={rm.RM_ID}>
-                                                                                                {rm.RM_NAME} ({parseFloat(rm.total_stock || 0)} avail)
-                                                                                            </option>
-                                                                                        ))}
-                                                                                    </select>
-                                                                                    <input
-                                                                                        type="text"
-                                                                                        inputMode="numeric"
-                                                                                        placeholder="Bag Qty"
-                                                                                        value={row.BAG_QTY || ''}
-                                                                                        onChange={(e) => {
-                                                                                            const val = e.target.value.replace(/[^0-9]/g, '');
-                                                                                            setModalItems(prev => ({
-                                                                                                ...prev,
-                                                                                                [pId]: { ...prev[pId], BAG_QTY: val }
-                                                                                            }));
-                                                                                        }}
-                                                                                        className="bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-1.5 px-2.5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500/50"
-                                                                                    />
-                                                                                    {row.BAG_RM_ID && parseFloat(row.BAG_QTY || 0) > parseFloat(rawMaterials.find(rm => rm.RM_ID === parseInt(row.BAG_RM_ID))?.total_stock || 0) && (
-                                                                                        <span className="text-[9px] font-black text-rose-500 animate-pulse mt-0.5">
-                                                                                            ⚠️ Exceeds Bag Stock
-                                                                                        </span>
-                                                                                    )}
-                                                                                    {shortageBagProductIds.includes(p.P_ID) && (
-                                                                                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-rose-500 text-white animate-pulse mt-1 text-center flex items-center justify-center gap-1">
-                                                                                            ⚠️ Bag Shortage
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                            ) : (
-                                                                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider ml-1">N/A</span>
-                                                                            )}
-                                                                        </td>
 
                                                                         {/* Total */}
                                                                         <td className="px-6 py-4.5 font-black text-blue-600 text-sm">
@@ -2448,17 +2436,17 @@ const OrderManagement = () => {
 
 
                                             {/* Product Items Loop */}
-                                            <div className="grid grid-cols-2 gap-2 print:gap-1">
+                                            <div className="grid grid-cols-2 gap-2 print:gap-1 items-start">
                                                 {productionSheetData.items.map((item, index) => {
                                                     let itemIngredientsCost = 0;
                                                     let itemBagsCost = 0;
 
                                                     return (
-                                                        <div key={index} className="print-card border border-slate-300 print:border-slate-400 rounded-lg p-2 print:p-1.5 hover:shadow-md transition-all h-fit">
+                                                        <div key={index} className="print-card border border-slate-300 print:border-slate-400 rounded-lg p-2 print:p-1.5 hover:shadow-md transition-all h-fit break-inside-avoid print:break-inside-avoid inline-block w-full">
                                                             <div className="flex justify-between items-center border-b border-slate-200 pb-1 mb-1.5">
                                                                 <div>
                                                                     <h3 className="text-base print:text-[24px] font-black text-slate-900">{item.productName}</h3>
-                                                                    <span className="text-[10px] print:text-[16px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider font-mono">{item.productCode}</span>
+
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <span className="text-[10px] print:text-[16px] font-black text-slate-400 uppercase tracking-wider block">Ordered Qty</span>
@@ -2472,18 +2460,18 @@ const OrderManagement = () => {
 
                                                                     <table className="w-full text-[10px] print:text-[20px] text-left border-collapse">
                                                                         <thead>
-                                                                            <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[8px] print:text-[18px] tracking-wider border-b-2 border-slate-300">
+                                                                            {/* <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[8px] print:text-[18px] tracking-wider border-b-2 border-slate-300">
                                                                                 <th className="p-1 print:py-3 print:px-2">Raw Material</th>
                                                                                 <th className="p-1 print:py-3 print:px-2 text-right">Required</th>
-                                                                            </tr>
+                                                                            </tr> */}
                                                                         </thead>
                                                                         <tbody>
                                                                             {item.recipeCostPreview.breakdown.map((ing, ingIdx) => (
                                                                                 <tr key={ingIdx} className="border-b border-slate-200 last:border-none print:border-slate-300">
-                                                                                    <td className="p-1 print:py-3 print:px-2 font-bold text-slate-900 leading-tight">
+                                                                                    <td className="p-1 print:py-2 print:px-2 font-bold text-slate-900 leading-tight">
                                                                                         {ing.name} <span className="text-[8px] print:hidden font-medium text-slate-500 font-mono ml-1">({ing.code})</span>
                                                                                     </td>
-                                                                                    <td className="p-1 print:py-3 print:px-2 text-right font-black text-slate-900 leading-tight">{formatQuantityAndUnit(ing.required, ing.unit)}</td>
+                                                                                    <td className="p-1 print:py-2 print:px-2 text-right font-black text-slate-900 leading-tight">{formatQuantityAndUnit(ing.required, ing.unit)}</td>
                                                                                 </tr>
                                                                             ))}
                                                                         </tbody>

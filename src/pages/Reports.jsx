@@ -9,22 +9,29 @@ const Reports = () => {
     const canViewReports = perms.includes('view_reports');
 
     const [showDateModal, setShowDateModal] = useState(false);
-    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '', shopType: 'all' });
+    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '', shopType: 'all', supplierId: '', materialId: '' });
     const [productsList, setProductsList] = useState([]);
     const [customersList, setCustomersList] = useState([]);
     const [salesRepsList, setSalesRepsList] = useState([]);
+    const [suppliersList, setSuppliersList] = useState([]);
+    const [rawMaterialsList, setRawMaterialsList] = useState([]);
 
     useEffect(() => {
         const fetchFilters = async () => {
             try {
-                const [prodRes, custRes, srRes] = await Promise.all([
+                const results = await Promise.allSettled([
                     api.get('/product/items'),
                     api.get('/customers'),
-                    api.get('/sales-rep')
+                    api.get('/sales-rep'),
+                    api.get('/suppliers'),
+                    api.get('/raw-material')
                 ]);
-                setProductsList(prodRes.data);
-                setCustomersList(custRes.data);
-                setSalesRepsList(srRes.data);
+
+                if (results[0].status === 'fulfilled') setProductsList(results[0].value.data);
+                if (results[1].status === 'fulfilled') setCustomersList(results[1].value.data);
+                if (results[2].status === 'fulfilled') setSalesRepsList(results[2].value.data);
+                if (results[3].status === 'fulfilled') setSuppliersList(results[3].value.data);
+                if (results[4].status === 'fulfilled') setRawMaterialsList(results[4].value.data);
             } catch (err) {
                 console.error('Failed to fetch filters data', err);
             }
@@ -142,6 +149,19 @@ const Reports = () => {
                         Generate PDF Report
                     </button>
                 </div>
+
+                <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-cyan-500/30 transition-all group">
+                    <div className="w-14 h-14 bg-cyan-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <ShoppingBag className="w-7 h-7 text-cyan-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Supplier Stock Report</h2>
+                    <p className="text-slate-600 dark:text-[#94a3b8] mb-6">View raw material stock provided by each supplier and the exact quantity and cost used for production.</p>
+                    <button 
+                        onClick={() => setShowDateModal('supplier-stock')}
+                        className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-cyan-500/20">
+                        Generate PDF Report
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] flex flex-col items-center justify-center min-h-[300px] text-center">
@@ -241,6 +261,41 @@ const Reports = () => {
                                 </div>
                             )}
 
+                            {showDateModal === 'supplier-stock' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Supplier</label>
+                                        <select
+                                            value={dateRange.supplierId}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, supplierId: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-all appearance-none"
+                                        >
+                                            <option value="">All Suppliers</option>
+                                            {suppliersList.map(s => (
+                                                <option key={s.CS_ID} value={s.CS_ID}>
+                                                    {s.CS_FULL_NAME}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Material</label>
+                                        <select
+                                            value={dateRange.materialId}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, materialId: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-all appearance-none"
+                                        >
+                                            <option value="">All Materials</option>
+                                            {rawMaterialsList.map(rm => (
+                                                <option key={rm.RM_ID} value={rm.RM_ID}>
+                                                    {rm.RM_NAME}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">From Date (Optional)</label>
@@ -283,6 +338,10 @@ const Reports = () => {
                                     if (showDateModal === 'shop-sales') {
                                         if (dateRange.shopId) params.append('shopId', dateRange.shopId);
                                         if (dateRange.srId) params.append('srId', dateRange.srId);
+                                    }
+                                    if (showDateModal === 'supplier-stock') {
+                                        if (dateRange.supplierId) params.append('supplierId', dateRange.supplierId);
+                                        if (dateRange.materialId) params.append('materialId', dateRange.materialId);
                                     }
                                     window.open(`${REPORTS_URL}/${showDateModal}?${params.toString()}`, '_blank');
                                     setShowDateModal(false);

@@ -669,7 +669,7 @@ const SupplierManagement = () => {
                                         </section>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
                             <div className="p-8 border-t border-slate-200 dark:border-[#334155] bg-slate-50/50 dark:bg-[#0f172a]/50 flex justify-end">
                                 <button onClick={() => setViewingSupplier(null)} className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl tracking-widest uppercase text-xs">Close Profile</button>
                             </div>

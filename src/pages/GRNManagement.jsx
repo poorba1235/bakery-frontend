@@ -493,18 +493,19 @@ const GRNManagement = () => {
     };
 
     const handleAddGrnFromMaterial = (material) => {
+        const foundMaterial = rawMaterials.find(m => String(m.RM_ID) === String(material.RM_ID)) || material;
         setNewGRN({
             TH_SEQ_NO: '',
             TH_REFERENCE: '',
             TH_DATE: formatDateForInput(new Date()),
-            TH_SUPPLIER_ID: '',
+            TH_SUPPLIER_ID: foundMaterial.latest_supplier_id ? foundMaterial.latest_supplier_id.toString() : '',
             TH_TOTAL_COST_AMOUNT_LCY: 0,
             items: []
         });
         setNewItem({
             TD_MATERIAL_ID: material.RM_ID.toString(),
             TD_QTY: '',
-            TD_COST_PRICE_LCY: '',
+            TD_COST_PRICE_LCY: foundMaterial.latest_cost || '',
             TD_EXP_DATE: '',
             TD_MANUFACTURE_DATE: '',
             L_ID: getDefaultLocationId()
@@ -854,6 +855,9 @@ const GRNManagement = () => {
                                                                 TD_MATERIAL_ID: val,
                                                                 TD_COST_PRICE_LCY: m?.latest_cost || newItem.TD_COST_PRICE_LCY
                                                             });
+                                                            if (!newGRN.TH_SUPPLIER_ID && m?.latest_supplier_id) {
+                                                                setNewGRN(prev => ({ ...prev, TH_SUPPLIER_ID: m.latest_supplier_id.toString() }));
+                                                            }
                                                         }}
                                                         placeholder="Search Material..."
                                                     />
