@@ -568,7 +568,7 @@ const SalesRepSettlements = () => {
                                                 </div>
 
                                                 <div className="bg-sky-50 dark:bg-sky-500/10 p-4 rounded-2xl border border-sky-200 dark:border-sky-500/20">
-                                                    <div className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Net Sold Qty (Sold - Expired)</div>
+                                                    <div className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Net Sold Qty (Sold - Returned)</div>
                                                     <div className="text-xl font-black text-sky-700 dark:text-sky-300 font-mono">{netSold}</div>
                                                 </div>
 
