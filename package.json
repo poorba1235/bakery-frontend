@@ -22,7 +22,6 @@
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",
     "react-to-print": "^3.3.0",
-    "recharts": "^3.9.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {

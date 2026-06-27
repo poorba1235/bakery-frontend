@@ -1,14 +1,15 @@
 import { motion } from "framer-motion";
-import { Shield, Users, Package, ShoppingCart, DollarSign, Activity, Sparkles, TrendingUp, Wallet, BarChart3 } from "lucide-react";
+import { Shield, Users, Package, ShoppingCart, DollarSign, Activity, Sparkles, TrendingUp, Wallet, BarChart3, PieChart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNotification } from "../context/NotificationContext";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const role = user?.roles?.split(",")[0] || "Staff";
+  const isAdmin = role.toLowerCase() === 'admin';
   const { showNotification } = useNotification();
 
   const [expense, setExpense] = useState('');
@@ -18,13 +19,16 @@ const Dashboard = () => {
     products: 0,
     orders: 0,
     monthlyRevenue: 0,
-    revenueChart: []
+    revenueChart: [],
+    topProducts: []
   });
 
   useEffect(() => {
-    fetchExpense();
-    fetchDashboardStats();
-  }, []);
+    if (isAdmin) {
+      fetchExpense();
+      fetchDashboardStats();
+    }
+  }, [isAdmin]);
 
   const fetchDashboardStats = async () => {
     try {
@@ -60,7 +64,7 @@ const Dashboard = () => {
   const stats = [
     {
       title: "Total Users",
-      value: dashboardData.users,
+      value: isAdmin ? dashboardData.users : '🔒',
       icon: Users,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
@@ -68,7 +72,7 @@ const Dashboard = () => {
     },
     {
       title: "Active Products",
-      value: dashboardData.products,
+      value: isAdmin ? dashboardData.products : '🔒',
       icon: Package,
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
@@ -76,7 +80,7 @@ const Dashboard = () => {
     },
     {
       title: "Today's Orders",
-      value: dashboardData.orders,
+      value: isAdmin ? dashboardData.orders : '🔒',
       icon: ShoppingCart,
       color: "text-amber-500",
       bg: "bg-amber-500/10",
@@ -84,7 +88,7 @@ const Dashboard = () => {
     },
     {
       title: "Monthly Revenue",
-      value: `Rs. ${Number(dashboardData.monthlyRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: isAdmin ? `Rs. ${Number(dashboardData.monthlyRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
       icon: TrendingUp,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
@@ -120,6 +124,22 @@ const Dashboard = () => {
     }
     return null;
   };
+
+  const CustomBarTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl border border-slate-700">
+          <p className="font-bold mb-1">{label}</p>
+          <p className="text-purple-400">
+            {Number(payload[0].value).toLocaleString()} Units Sold
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const BAR_COLORS = ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#0f172a] text-slate-800 dark:text-white pb-12">
@@ -168,10 +188,7 @@ const Dashboard = () => {
               whileTap={{ scale: 0.95 }}
               className="flex-shrink-0"
             >
-              <button className="px-6 py-3.5 rounded-2xl bg-white text-blue-800 font-bold hover:bg-blue-50 shadow-xl shadow-black/10 transition-all flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                View Detailed Reports
-              </button>
+              
             </motion.div>
           </div>
           
@@ -230,7 +247,12 @@ const Dashboard = () => {
               </div>
 
               <div className="h-[300px] w-full">
-                {dashboardData.revenueChart && dashboardData.revenueChart.length > 0 ? (
+                {!isAdmin ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                    <Shield className="w-8 h-8 mb-2 opacity-50 text-indigo-500" />
+                    <p className="text-sm">Admin access required to view revenue trends.</p>
+                  </div>
+                ) : dashboardData.revenueChart && dashboardData.revenueChart.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={dashboardData.revenueChart}
@@ -276,57 +298,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Expense Management */}
-            <div className="bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-[#334155] shadow-lg shadow-slate-200/50 dark:shadow-none overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rose-400 to-rose-600" />
-              <div className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Store Expenses</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Manage daily or weekly fixed costs</p>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row items-end gap-4 bg-slate-50 dark:bg-[#0f172a] p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">Fixed Cost Amount (Rs.)</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <DollarSign className="h-5 w-5 text-slate-400" />
-                      </div>
-                      <input
-                        type="number" 
-                        min="0" 
-                        step="0.01" 
-                        value={expense}
-                        onChange={(e) => setExpense(e.target.value)}
-                        placeholder="0.00"
-                        className="block w-full pl-11 pr-4 py-3.5 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-xl text-slate-800 dark:text-white font-bold text-lg outline-none focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 transition-all shadow-sm"
-                      />
-                    </div>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleUpdateExpense}
-                    disabled={isUpdatingExpense}
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-70 h-[54px]"
-                  >
-                    {isUpdatingExpense ? (
-                      <span className="flex items-center gap-2">
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Updating...
-                      </span>
-                    ) : (
-                      "Update Expense"
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-            </div>
+          
           </motion.div>
 
           {/* Sidebar Area */}
@@ -336,21 +308,56 @@ const Dashboard = () => {
             transition={{ delay: 0.5 }}
             className="space-y-6"
           >
-            <div className="bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-[#334155] p-6 shadow-lg shadow-slate-200/50 dark:shadow-none h-full min-h-[300px] flex flex-col">
-              {/* <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-indigo-500" />
-                  Recent Activity
-                </h3>
-              </div> */}
-
-              {/* <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-200 dark:border-[#334155] rounded-2xl bg-slate-50/50 dark:bg-[#0f172a]/50">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <Activity className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+            {/* Top Selling Products */}
+            <div className="bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-[#334155] shadow-lg shadow-slate-200/50 dark:shadow-none p-8 flex flex-col h-full min-h-[420px]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                  <PieChart className="w-5 h-5" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">No Recent Activity</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-500 max-w-[200px]">System activity logs will appear here once users perform actions.</p>
-              </div> */}
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Top Products</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Best sellers (last 30 days)</p>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full min-h-[250px]">
+                {!isAdmin ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                    <Shield className="w-8 h-8 mb-2 opacity-50 text-purple-500" />
+                    <p className="text-sm">Admin access required.</p>
+                  </div>
+                ) : dashboardData.topProducts && dashboardData.topProducts.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={dashboardData.topProducts}
+                      layout="vertical"
+                      margin={{ top: 0, right: 20, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#334155" opacity={0.2} />
+                      <XAxis type="number" hide />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
+                        width={100}
+                      />
+                      <Tooltip content={<CustomBarTooltip />} cursor={{ fill: '#334155', opacity: 0.1 }} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                        {dashboardData.topProducts.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                    <PieChart className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm">No sales data available.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
