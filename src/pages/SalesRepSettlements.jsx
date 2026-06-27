@@ -475,7 +475,7 @@ const SalesRepSettlements = () => {
                                                 <th className="px-4 py-3 text-center text-indigo-500">Loaded</th>
                                                 <th className="px-4 py-3 text-center text-blue-600">Sold</th>
                                                 <th className="px-4 py-3 text-center">Free</th>
-                                                <th className="px-4 py-3 text-center text-red-600">Expired</th>
+                                                <th className="px-4 py-3 text-center text-red-600">Returned</th>
                                                 <th className="px-4 py-3 text-center text-orange-500">Old</th>
                                                 <th className="px-4 py-3 text-center text-teal-600">Unsold</th>
                                                 <th className="px-4 py-3 text-right">Net Cash (Rs.)</th>
@@ -542,6 +542,9 @@ const SalesRepSettlements = () => {
                                 {(() => {
                                     const totalLoaded = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0), 0);
                                     const totalUnsold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0), 0);
+                                    const totalSold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.SOLD_QTY) || 0), 0);
+                                    const totalExpired = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0), 0);
+                                    const netSold = totalSold - totalExpired;
                                     const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
                                     const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
                                     const currentTotalNetCash = grossCash - dayDiscount;
@@ -558,11 +561,17 @@ const SalesRepSettlements = () => {
 
                                     return (
                                         <div className="flex flex-col gap-4 pt-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-500/20">
                                                     <div className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Total Loaded Qty</div>
                                                     <div className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono">{totalLoaded}</div>
                                                 </div>
+
+                                                <div className="bg-sky-50 dark:bg-sky-500/10 p-4 rounded-2xl border border-sky-200 dark:border-sky-500/20">
+                                                    <div className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Net Sold Qty (Sold - Expired)</div>
+                                                    <div className="text-xl font-black text-sky-700 dark:text-sky-300 font-mono">{netSold}</div>
+                                                </div>
+
                                                 <div className="bg-teal-50 dark:bg-teal-500/10 p-4 rounded-2xl border border-teal-200 dark:border-teal-500/20">
                                                     <div className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-1">Total Unsold Qty (Leftover)</div>
                                                     <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
