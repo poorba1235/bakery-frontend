@@ -1382,6 +1382,26 @@ const ProductManagement = () => {
                                                         placeholder="Cooking instructions or quality notes..."
                                                     />
                                                 </div>
+
+                                                {/* Calculated Cost Display */}
+                                                <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-black uppercase text-[10px] tracking-[0.2em]">
+                                                            <Calculator className="w-4 h-4" />
+                                                            <span>Estimated Cost</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter">
+                                                        Rs. {(recipeFormData.items.reduce((total, item) => {
+                                                            if (item.checked === false) return total;
+                                                            if (!item.RECD_RAW_METERIAL_ID) return total;
+                                                            const rm = rawMaterials.find(r => r.RM_ID === item.RECD_RAW_METERIAL_ID);
+                                                            const cost = rm ? parseFloat(rm.latest_cost || 0) : 0;
+                                                            return total + (parseFloat(item.RECD_QTY) || 0) * cost;
+                                                        }, 0) + (parseFloat(recipeFormData.RECH_STORE_EXPENSES) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Includes raw materials + store expenses</p>
+                                                </div>
                                             </section>
                                         </div>
 
