@@ -162,6 +162,19 @@ const Reports = () => {
                         Generate PDF Report
                     </button>
                 </div>
+
+                <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-orange-500/30 transition-all group">
+                    <div className="w-14 h-14 bg-orange-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <Package className="w-7 h-7 text-orange-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Recipe Cost Report</h2>
+                    <p className="text-slate-600 dark:text-[#94a3b8] mb-6">Generate a comprehensive breakdown of raw materials required for products and their estimated costs.</p>
+                    <button 
+                        onClick={() => setShowDateModal('recipe-cost')}
+                        className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-orange-500/20">
+                        Generate PDF Report
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] flex flex-col items-center justify-center min-h-[300px] text-center">
@@ -188,7 +201,7 @@ const Reports = () => {
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            {(showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track') && (
+                            {(showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track' || showDateModal === 'recipe-cost') && (
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Product</label>
                                     <div className="relative">
@@ -296,26 +309,28 @@ const Reports = () => {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">From Date (Optional)</label>
-                                    <input
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    />
+                            {showDateModal !== 'recipe-cost' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">From Date (Optional)</label>
+                                        <input
+                                            type="date"
+                                            value={dateRange.from}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">To Date (Optional)</label>
+                                        <input
+                                            type="date"
+                                            value={dateRange.to}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">To Date (Optional)</label>
-                                    <input
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    />
-                                </div>
-                            </div>
+                            )}
                         </div>
                         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700/50">
                             <button
@@ -329,7 +344,7 @@ const Reports = () => {
                                     const params = new URLSearchParams();
                                     if (dateRange.from) params.append('from', dateRange.from);
                                     if (dateRange.to) params.append('to', dateRange.to);
-                                    if ((showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track') && dateRange.productId) {
+                                    if ((showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track' || showDateModal === 'recipe-cost') && dateRange.productId) {
                                         params.append('productId', dateRange.productId);
                                     }
                                     if (showDateModal === 'product-profit' && dateRange.shopType) {
