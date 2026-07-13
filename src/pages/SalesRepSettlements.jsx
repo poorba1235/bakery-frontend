@@ -292,6 +292,7 @@ const SalesRepSettlements = () => {
     };
 
     const [statusFilter, setStatusFilter] = useState('0'); // '0' for Pending, '1' for Settled, 'ALL' for All
+    const [dateFilter, setDateFilter] = useState('ALL'); // 'ALL' or 'TODAY'
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -308,7 +309,14 @@ const SalesRepSettlements = () => {
 
         const matchesStatus = statusFilter === 'ALL' || item.STATUS?.toString() === statusFilter;
 
-        return matchesSearch && matchesStatus;
+        let matchesDate = true;
+        if (dateFilter === 'TODAY') {
+            const itemDate = new Date(item.SETTLE_DATE).setHours(0, 0, 0, 0);
+            const today = new Date().setHours(0, 0, 0, 0);
+            matchesDate = itemDate === today;
+        }
+
+        return matchesSearch && matchesStatus && matchesDate;
     });
 
     const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -340,7 +348,14 @@ const SalesRepSettlements = () => {
                 >
                     <option value="0">Pending Settlements</option>
                     <option value="1">Settled / Completed</option>
-                    <option value="ALL">Show All</option>
+                    <option value="ALL">Show All Status</option>
+                </select>
+                <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-4 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold">
+                    <option value="ALL">All Time</option>
+                    <option value="TODAY">Today Only</option>
                 </select>
             </div>
 
