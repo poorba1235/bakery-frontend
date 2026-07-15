@@ -170,27 +170,31 @@ const SalesRepSettlements = () => {
             <head>
                 <title>Settlement A4 Report - #${activeSettlement.SETTLE_ID}</title>
                 <style>
-                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 20px; font-size: 14px; color: #333; }
-                    .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+                    @media print {
+                        @page { size: auto; margin: 5mm; }
+                        body { zoom: 0.8; }
+                    }
+                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 10px; font-size: 12px; color: #333; }
+                    .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
                     .logo-area { text-align: left; }
-                    .logo-area img { height: 50px; }
-                    .logo-area h1 { margin: 5px 0 0 0; font-size: 24px; color: #000; }
-                    .logo-area p { margin: 2px 0; color: #555; }
+                    .logo-area img { height: 40px; }
+                    .logo-area h1 { margin: 5px 0 0 0; font-size: 20px; color: #000; }
+                    .logo-area p { margin: 2px 0; color: #555; font-size: 11px; }
                     .info-area { text-align: right; }
-                    .info-area h2 { margin: 0 0 10px 0; font-size: 20px; color: #000; }
-                    .info-area p { margin: 2px 0; font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-                    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+                    .info-area h2 { margin: 0 0 5px 0; font-size: 18px; color: #000; }
+                    .info-area p { margin: 2px 0; font-weight: bold; font-size: 11px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: center; }
+                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 11px; }
                     td.left { text-align: left; }
                     td.right { text-align: right; }
                     .summary-section { display: flex; justify-content: flex-end; }
-                    .summary-box { width: 350px; border: 1px solid #ccc; padding: 15px; border-radius: 5px; background-color: #fafafa; }
-                    .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+                    .summary-box { width: 300px; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background-color: #fafafa; }
+                    .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
                     .summary-row.bold { font-weight: bold; color: #000; }
-                    .summary-row.total { font-weight: bold; font-size: 18px; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
+                    .summary-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #333; padding-top: 8px; margin-top: 8px; }
                     .summary-row.deduction { color: #d32f2f; }
-                    .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #777; border-top: 1px solid #ccc; padding-top: 10px; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 10px; color: #777; border-top: 1px solid #ccc; padding-top: 10px; }
                 </style>
             </head>
             <body>
@@ -258,9 +262,6 @@ const SalesRepSettlements = () => {
                     </div>
                 </div>
 
-                <div class="footer">
-                    System Generated Settlement Report &bull; Indika Bakery Management System
-                </div>
                 <script>
                     window.onload = function() { window.print(); }
                 </script>
