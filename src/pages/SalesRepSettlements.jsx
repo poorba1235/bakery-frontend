@@ -171,10 +171,10 @@ const SalesRepSettlements = () => {
                 <title>Settlement A4 Report - #${activeSettlement.SETTLE_ID}</title>
                 <style>
                     @media print {
-                        @page { size: auto; margin: 5mm; }
-                        body { zoom: 0.8; }
+                        @page { size: auto; margin: 20mm 20mm 10mm 20mm; }
+                        body { zoom: 0.95; }
                     }
-                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 10px; font-size: 12px; color: #333; }
+                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 15px; font-size: 14px; color: #333; }
                     .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
                     .logo-area { text-align: left; }
                     .logo-area img { height: 40px; }
