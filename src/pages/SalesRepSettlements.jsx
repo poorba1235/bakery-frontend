@@ -229,7 +229,7 @@ const SalesRepSettlements = () => {
                     <tbody>
                         ${settlementDetails.map(item => `
                             <tr>
-                                <td class="left"><b>${item.P_NAME}</b><br><span style="font-size:10px;color:#777;">${item.P_CODE}</span></td>
+                                <td class="left"><b>${item.P_NAME}</b></td>
                                 <td>${item.LOADED_QTY}</td>
                                 <td>${item.SOLD_QTY}</td>
                                 <td>${item.FREE_QTY}</td>
@@ -502,7 +502,6 @@ const SalesRepSettlements = () => {
                                                 <tr key={item.P_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
                                                     <td className="px-4 py-3">
                                                         <div className="font-bold text-slate-800 dark:text-white">{item.P_NAME}</div>
-                                                        <div className="text-xs text-slate-500">{item.P_CODE}</div>
                                                     </td>
                                                     <td className="px-4 py-3 text-center font-mono font-bold text-indigo-500 dark:text-indigo-400">
                                                         {item.LOADED_QTY}
