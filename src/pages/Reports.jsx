@@ -175,6 +175,19 @@ const Reports = () => {
                         Generate PDF Report
                     </button>
                 </div>
+
+                <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-pink-500/30 transition-all group">
+                    <div className="w-14 h-14 bg-pink-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <ShoppingBag className="w-7 h-7 text-pink-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Sales Rep Invoices Report</h2>
+                    <p className="text-slate-600 dark:text-[#94a3b8] mb-6">Detailed overview of invoices created by Sales Representatives.</p>
+                    <button 
+                        onClick={() => setShowDateModal('sales-rep-invoices')}
+                        className="px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-pink-500/20">
+                        Generate PDF Report
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] flex flex-col items-center justify-center min-h-[300px] text-center">
@@ -274,6 +287,24 @@ const Reports = () => {
                                 </div>
                             )}
 
+                            {showDateModal === 'sales-rep-invoices' && (
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Sales Rep</label>
+                                    <select
+                                        value={dateRange.srId}
+                                        onChange={(e) => setDateRange(prev => ({ ...prev, srId: e.target.value }))}
+                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-all appearance-none"
+                                    >
+                                        <option value="">All Sales Reps</option>
+                                        {salesRepsList.map(sr => (
+                                            <option key={sr.SR_ID} value={sr.SR_ID}>
+                                                {sr.SR_NAME}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             {showDateModal === 'supplier-stock' && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -352,6 +383,9 @@ const Reports = () => {
                                     }
                                     if (showDateModal === 'shop-sales') {
                                         if (dateRange.shopId) params.append('shopId', dateRange.shopId);
+                                        if (dateRange.srId) params.append('srId', dateRange.srId);
+                                    }
+                                    if (showDateModal === 'sales-rep-invoices') {
                                         if (dateRange.srId) params.append('srId', dateRange.srId);
                                     }
                                     if (showDateModal === 'supplier-stock') {
