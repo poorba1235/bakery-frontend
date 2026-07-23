@@ -77,7 +77,13 @@ const SalesRepOrders = () => {
         setFormData({
             SR_ID: '',
             SROH_ORDER_FOR_DATE: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-            details: []
+            details: products.map(p => ({
+                P_ID: p.P_ID,
+                P_NAME: p.P_NAME,
+                P_CODE: p.P_CODE,
+                SROD_REQUESTED_QTY: '0',
+                C_ID: null
+            }))
         });
         setProductSearch('');
         setIsCreateModalOpen(true);
@@ -415,9 +421,9 @@ const SalesRepOrders = () => {
                                             <tbody className="divide-y divide-slate-200 dark:divide-[#334155]">
                                                 {products.filter(p => p.P_NAME?.toLowerCase().includes(productSearch.toLowerCase()) || p.P_CODE?.toLowerCase().includes(productSearch.toLowerCase())).map(p => {
                                                     const existingDetail = formData.details.find(d => d.P_ID === p.P_ID);
-                                                    const qty = existingDetail ? existingDetail.SROD_REQUESTED_QTY : '';
+                                                    const qty = existingDetail ? existingDetail.SROD_REQUESTED_QTY : '0';
                                                     return (
-                                                        <tr key={p.P_ID} className={`transition-colors ${existingDetail ? 'bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-[#0f172a]/50'}`}>
+                                                        <tr key={p.P_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/50">
                                                             <td className="px-4 py-3">
                                                                 <div className="font-bold text-slate-800 dark:text-white">{p.P_NAME}</div>
                                                                 <div className="text-xs text-slate-500">{p.P_CODE}</div>
@@ -435,26 +441,23 @@ const SalesRepOrders = () => {
                                                                     value={qty}
                                                                     onChange={(e) => {
                                                                         const val = e.target.value.replace(/[^0-9]/g, '');
-                                                                        if (val === '' || parseInt(val) === 0) {
-                                                                            removeProduct(p.P_ID);
+                                                                        const targetVal = val === '' ? '0' : val;
+                                                                        if (existingDetail) {
+                                                                            updateProductQty(p.P_ID, targetVal);
                                                                         } else {
-                                                                            if (existingDetail) {
-                                                                                updateProductQty(p.P_ID, val);
-                                                                            } else {
-                                                                                setFormData(prev => ({
-                                                                                    ...prev,
-                                                                                    details: [
-                                                                                        ...prev.details,
-                                                                                        {
-                                                                                            P_ID: p.P_ID,
-                                                                                            P_NAME: p.P_NAME,
-                                                                                            P_CODE: p.P_CODE,
-                                                                                            SROD_REQUESTED_QTY: val,
-                                                                                            C_ID: null
-                                                                                        }
-                                                                                    ]
-                                                                                }));
-                                                                            }
+                                                                            setFormData(prev => ({
+                                                                                ...prev,
+                                                                                details: [
+                                                                                    ...prev.details,
+                                                                                    {
+                                                                                        P_ID: p.P_ID,
+                                                                                        P_NAME: p.P_NAME,
+                                                                                        P_CODE: p.P_CODE,
+                                                                                        SROD_REQUESTED_QTY: targetVal,
+                                                                                        C_ID: null
+                                                                                    }
+                                                                                ]
+                                                                            }));
                                                                         }
                                                                     }}
                                                                     className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-lg py-2 px-3 text-center font-bold text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
