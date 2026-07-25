@@ -31,7 +31,7 @@ class QZPrintService {
     }
 
 
-    async printReceipt(sale, customPrinterName = null) {
+    async printReceipt(sale, customPrinterName = null, customPaperWidth = null) {
         try {
             // 1. Ensure connected to local service
             await this.connect();
@@ -64,6 +64,9 @@ class QZPrintService {
                 }
             }
 
+            const paperWidth = customPaperWidth || localStorage.getItem('pos_paper_width') || '80mm';
+            const is80mm = paperWidth === '80mm';
+
             const config = qz.configs.create(activePrinterName, {
                 margins: { top: 0, right: 0, bottom: 0, left: 0 },
                 colorType: 'grayscale',
@@ -80,23 +83,21 @@ class QZPrintService {
                             font-family: 'Noto Sans Sinhala', sans-serif, Arial; 
                             margin: 0; 
                             padding: 10px 5px; 
-                            width: 58mm; /* 2 inch roll */
-                            font-size: 11px;
+                            width: ${is80mm ? '78mm' : '58mm'};
+                            font-size: ${is80mm ? '12px' : '11px'};
                             color: black;
                             background: white;
                         }
                         .text-center { text-align: center; }
                         .text-right { text-align: right; }
                         .font-bold { font-weight: bold; }
-                        .text-lg { font-size: 16px; }
-                        .text-sm { font-size: 9px; }
+                        .text-lg { font-size: ${is80mm ? '18px' : '16px'}; }
+                        .text-sm { font-size: ${is80mm ? '10px' : '9px'}; }
                         .flex-between { display: flex; justify-content: space-between; margin-bottom: 2px; }
                         .divider { border-bottom: 1px dashed black; margin: 5px 0; }
                         table { width: 100%; border-collapse: collapse; margin: 5px 0; }
                         th, td { text-align: left; vertical-align: top; padding: 2px 0; }
-                        th:nth-child(2), td:nth-child(2) { text-align: center; }
-                        th:last-child, td:last-child { text-align: right; }
-                        .item-name { max-width: 35mm; overflow: hidden; }
+                        .item-name { max-width: ${is80mm ? '38mm' : '32mm'}; overflow: hidden; word-break: break-word; }
                     </style>
                 </head>
                 <body>
@@ -121,8 +122,9 @@ class QZPrintService {
                         <thead>
                             <tr class="font-bold">
                                 <th>ITEM</th>
-                                <th>QTY</th>
-                                <th>TOTAL</th>
+                                ${is80mm ? '<th style="text-align: right;">PRICE</th>' : ''}
+                                <th style="text-align: center;">QTY</th>
+                                <th style="text-align: right;">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,8 +136,9 @@ class QZPrintService {
                 htmlContent += `
                     <tr>
                         <td class="item-name">${name}</td>
-                        <td>${item.qty}</td>
-                        <td>Rs.${(item.qty * item.unitPrice).toFixed(0)}</td>
+                        ${is80mm ? `<td style="text-align: right;">${item.unitPrice.toFixed(0)}</td>` : ''}
+                        <td style="text-align: center;">${item.qty}</td>
+                        <td style="text-align: right;">Rs.${(item.qty * item.unitPrice).toFixed(0)}</td>
                     </tr>
                 `;
             });
@@ -148,7 +151,7 @@ class QZPrintService {
 
                     <div class="flex-between"><span>SUBTOTAL:</span><span>Rs. ${sale.subtotal.toFixed(2)}</span></div>
                     ${sale.discount > 0 ? `<div class="flex-between"><span>DISCOUNT:</span><span>-Rs. ${sale.discount.toFixed(2)}</span></div>` : ''}
-                    <div class="flex-between font-bold"><span>NET TOTAL:</span><span>Rs. ${sale.netAmount.toFixed(2)}</span></div>
+                    <div class="flex-between font-bold" style="font-size: ${is80mm ? '14px' : '12px'};"><span>NET TOTAL:</span><span>Rs. ${sale.netAmount.toFixed(2)}</span></div>
                     <div class="flex-between"><span>PAID ${(sale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. ${sale.amountTendered.toFixed(2)}</span></div>
                     <div class="flex-between font-bold"><span>CHANGE:</span><span>Rs. ${sale.amountChange.toFixed(2)}</span></div>
 

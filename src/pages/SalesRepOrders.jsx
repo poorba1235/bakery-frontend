@@ -19,16 +19,16 @@ import api from '../services/api';
 const SalesRepOrders = () => {
     const { user: currentUser } = useAuth();
     const { showNotification } = useNotification();
-    
+
     const [orders, setOrders] = useState([]);
     const [salesReps, setSalesReps] = useState([]);
     const [products, setProducts] = useState([]);
-    
+
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    
+
     // Distribute Modal States
     const [isDistributeModalOpen, setIsDistributeModalOpen] = useState(false);
     const [activeOrder, setActiveOrder] = useState(null);
@@ -45,7 +45,7 @@ const SalesRepOrders = () => {
     });
 
     const perms = currentUser?.permissions?.split(',') || [];
-    const hasPermission = perms.includes('order-manage'); 
+    const hasPermission = perms.includes('order-manage');
 
     const roles = currentUser?.roles?.split(',') || [];
     const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
@@ -92,7 +92,7 @@ const SalesRepOrders = () => {
     const addProductToOrder = (productId) => {
         const product = products.find(p => p.P_ID === parseInt(productId));
         if (!product) return;
-        
+
         if (formData.details.find(d => d.P_ID === product.P_ID)) {
             showNotification('Product already added to order', 'error');
             return;
@@ -116,7 +116,7 @@ const SalesRepOrders = () => {
     const updateProductQty = (productId, qty) => {
         setFormData(prev => ({
             ...prev,
-            details: prev.details.map(d => 
+            details: prev.details.map(d =>
                 d.P_ID === productId ? { ...d, SROD_REQUESTED_QTY: qty } : d
             )
         }));
@@ -131,12 +131,12 @@ const SalesRepOrders = () => {
 
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.SR_ID) {
             showNotification('Please select a Sales Representative', 'error');
             return;
         }
-        
+
         if (formData.details.length === 0) {
             showNotification('Please add at least one product', 'error');
             return;
@@ -162,8 +162,8 @@ const SalesRepOrders = () => {
             // Default distributed qty to requested qty if order is pending
             setDistributeDetails(res.data.details.map(d => ({
                 ...d,
-                SROD_DISTRIBUTED_QTY: res.data.header.SROH_STATUS === 0 
-                    ? d.SROD_REQUESTED_QTY 
+                SROD_DISTRIBUTED_QTY: res.data.header.SROH_STATUS === 0
+                    ? d.SROD_REQUESTED_QTY
                     : (d.SROD_DISTRIBUTED_QTY !== null ? d.SROD_DISTRIBUTED_QTY : d.SROD_REQUESTED_QTY)
             })));
             setIsDistributeModalOpen(true);
@@ -173,7 +173,7 @@ const SalesRepOrders = () => {
     };
 
     const updateDistQty = (srodId, qty) => {
-        setDistributeDetails(prev => prev.map(d => 
+        setDistributeDetails(prev => prev.map(d =>
             d.SROD_ID === srodId ? { ...d, SROD_DISTRIBUTED_QTY: qty } : d
         ));
     };
@@ -226,12 +226,12 @@ const SalesRepOrders = () => {
         }
     };
 
-    const filteredData = orders.filter(item => 
-        searchTerm === '' || 
+    const filteredData = orders.filter(item =>
+        searchTerm === '' ||
         (item.SR_NAME || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.SROH_ID.toString().includes(searchTerm)
     );
-    
+
     // Sort so pending (0) is at top
     const sortedData = [...filteredData].sort((a, b) => {
         if (a.SROH_STATUS === 0 && b.SROH_STATUS !== 0) return -1;
@@ -312,16 +312,16 @@ const SalesRepOrders = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         {order.SROH_STATUS === 0 && isAdmin ? (
-                                            <button 
-                                                onClick={() => openDistributeModal(order.SROH_ID)} 
+                                            <button
+                                                onClick={() => openDistributeModal(order.SROH_ID)}
                                                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center ml-auto"
                                             >
                                                 <ClipboardCheck className="w-4 h-4 mr-2" />
                                                 Distribute
                                             </button>
                                         ) : (
-                                            <button 
-                                                onClick={() => openDistributeModal(order.SROH_ID)} 
+                                            <button
+                                                onClick={() => openDistributeModal(order.SROH_ID)}
                                                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors ml-auto"
                                             >
                                                 View Details
@@ -374,12 +374,12 @@ const SalesRepOrders = () => {
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
-                            
+
                             <form onSubmit={handleCreateSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sales Representative *</label>
-                                        <select required value={formData.SR_ID} onChange={e => setFormData({...formData, SR_ID: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium">
+                                        <select required value={formData.SR_ID} onChange={e => setFormData({ ...formData, SR_ID: e.target.value })} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium">
                                             <option value="">Select a Rep...</option>
                                             {salesReps.map(sr => (
                                                 <option key={sr.SR_ID} value={sr.SR_ID}>{sr.SR_NAME}</option>
@@ -388,7 +388,7 @@ const SalesRepOrders = () => {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Order For Date *</label>
-                                        <input type="date" required value={formData.SROH_ORDER_FOR_DATE} onChange={e => setFormData({...formData, SROH_ORDER_FOR_DATE: e.target.value})} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium" />
+                                        <input type="date" required value={formData.SROH_ORDER_FOR_DATE} onChange={e => setFormData({ ...formData, SROH_ORDER_FOR_DATE: e.target.value })} className="w-full bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2.5 px-3 text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 font-medium" />
                                     </div>
                                 </div>
 
@@ -398,8 +398,8 @@ const SalesRepOrders = () => {
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Products</label>
                                             <div className="relative group">
                                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     placeholder="Filter products by name or code..."
                                                     value={productSearch}
                                                     onChange={(e) => setProductSearch(e.target.value)}
@@ -434,8 +434,8 @@ const SalesRepOrders = () => {
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 py-3">
-                                                                <input 
-                                                                    type="text" 
+                                                                <input
+                                                                    type="text"
                                                                     inputMode="numeric"
                                                                     placeholder="0"
                                                                     value={qty}
@@ -471,7 +471,7 @@ const SalesRepOrders = () => {
                                     </div>
                                 </div>
                             </form>
-                            
+
                             <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-end gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
                                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                                 <button type="submit" disabled={isSaving || formData.details.length === 0} onClick={handleCreateSubmit} className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all flex items-center disabled:opacity-50">
@@ -502,7 +502,7 @@ const SalesRepOrders = () => {
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
-                            
+
                             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                                 <div className="grid grid-cols-2 gap-4 mb-2">
                                     <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl border border-slate-200 dark:border-[#334155]">
@@ -512,10 +512,10 @@ const SalesRepOrders = () => {
                                     <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-xl border border-slate-200 dark:border-[#334155]">
                                         <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Order For</div>
                                         {activeOrder.SROH_STATUS === 0 && isAdmin ? (
-                                            <input 
-                                                type="date" 
+                                            <input
+                                                type="date"
                                                 value={activeOrder.SROH_ORDER_FOR_DATE ? new Date(activeOrder.SROH_ORDER_FOR_DATE).toISOString().split('T')[0] : ''}
-                                                onChange={(e) => setActiveOrder({...activeOrder, SROH_ORDER_FOR_DATE: e.target.value})}
+                                                onChange={(e) => setActiveOrder({ ...activeOrder, SROH_ORDER_FOR_DATE: e.target.value })}
                                                 className="w-full bg-white dark:bg-[#1e293b] border border-indigo-300 dark:border-indigo-500/50 rounded-lg py-1 px-2 font-bold focus:ring-2 focus:ring-indigo-500 text-indigo-700 dark:text-indigo-400"
                                             />
                                         ) : (
@@ -545,8 +545,8 @@ const SalesRepOrders = () => {
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
                                                         {activeOrder.SROH_STATUS === 0 && isAdmin ? (
-                                                            <input 
-                                                                type="number" 
+                                                            <input
+                                                                type="number"
                                                                 min="0"
                                                                 value={item.SROD_DISTRIBUTED_QTY}
                                                                 onChange={(e) => updateDistQty(item.SROD_ID, e.target.value)}
@@ -564,7 +564,7 @@ const SalesRepOrders = () => {
                                     </table>
                                 </div>
                             </div>
-                            
+
                             {activeOrder.SROH_STATUS === 0 && isAdmin ? (
                                 <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-between gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
                                     <button type="button" onClick={handleReject} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors">

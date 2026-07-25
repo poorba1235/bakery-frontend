@@ -22,7 +22,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import api from '../services/api';
-import qzPrintService from '../services/qzPrintService';
 
 const POSPage = () => {
     const { user } = useAuth();
@@ -57,15 +56,24 @@ const POSPage = () => {
 
     // Active Completed Sale State for Direct Printing
     const [completedSale, setCompletedSale] = useState(null);
-    const [isSilentPrint, setIsSilentPrint] = useState(true);
     const [selectedProductForPrice, setSelectedProductForPrice] = useState(null);
 
-    // QZ Tray Printer States
-    const [qzPrinters, setQzPrinters] = useState([]);
-    const [selectedPrinter, setSelectedPrinter] = useState(localStorage.getItem('qz_selected_printer') || '');
-
-    // Post-Checkout Print Action Selection ('preview' | 'qz' | 'pdf' | 'browser')
+    // Post-Checkout Print Action Selection ('preview' | 'browser' | 'pdf')
     const [checkoutAction, setCheckoutAction] = useState(localStorage.getItem('pos_checkout_action') || 'preview');
+    // Paper Width Preference ('80mm' | '58mm') - default to 80mm
+    const [paperWidth, setPaperWidth] = useState(localStorage.getItem('pos_paper_width') || '80mm');
+    // Receipt Font Preference ('Consolas' | 'Segoe UI' | 'Courier New') - default to Consolas
+    const [receiptFont, setReceiptFont] = useState(localStorage.getItem('pos_receipt_font') || 'Consolas');
+
+    const getReceiptFontFamily = () => {
+        if (receiptFont === 'Segoe UI') {
+            return "'Segoe UI', 'Noto Sans Sinhala', Arial, sans-serif";
+        }
+        if (receiptFont === 'Courier New') {
+            return "'Courier New', Courier, monospace";
+        }
+        return "'Consolas', 'Segoe UI', 'Noto Sans Sinhala', Arial, sans-serif";
+    };
 
     // Load data on mount
     useEffect(() => {
@@ -74,36 +82,6 @@ const POSPage = () => {
         setTimeout(() => {
             document.getElementById('product-search')?.focus();
         }, 400);
-    }, []);
-
-    // Load QZ Tray Printer List on mount
-    useEffect(() => {
-        const loadQZPrinters = async () => {
-            try {
-                const list = await qzPrintService.getAvailablePrinters();
-                console.log('[QZ Tray] Available local printers on boot:', list);
-                setQzPrinters(list);
-                if (list.length > 0) {
-                    const matched = list.find(p => {
-                        const name = p.toLowerCase();
-                        return name.includes('receipt') ||
-                            name.includes('thermal') ||
-                            name.includes('tsp') ||
-                            name.includes('pos') ||
-                            name.includes('xprinter') ||
-                            name.includes('xp-');
-                    });
-                    const defaultPrinter = matched || list[0];
-                    if (!selectedPrinter) {
-                        setSelectedPrinter(defaultPrinter);
-                        localStorage.setItem('qz_selected_printer', defaultPrinter);
-                    }
-                }
-            } catch (err) {
-                console.warn('[QZ Tray] Loopback service not found or running on boot:', err.message);
-            }
-        };
-        loadQZPrinters();
     }, []);
 
     const fetchInitialData = async () => {
@@ -342,27 +320,14 @@ const POSPage = () => {
         setCompletedSale(saleData);
     };
 
-    // Trigger QZ Tray Raw Silent Printing directly on the counter PC
-    const handleQZPrint = async (saleData) => {
-        const targetSale = saleData && saleData.invoiceNo ? saleData : completedSale;
-        if (!targetSale) return;
-        try {
-            await qzPrintService.printReceipt(targetSale, selectedPrinter);
-            showNotification('QZ Tray: Spooled directly to physical printer!', 'success');
-        } catch (err) {
-            console.error('[QZPrint] Failed:', err);
-            showNotification(err.message || 'QZ Tray connection offline. Ensure the QZ application is running.', 'error');
-        }
-    };
-
     // Auto Download structured PDF receipt natively using local jsPDF (Works 100% offline!)
     const downloadReceiptPDF = (saleData) => {
         const targetSale = saleData && saleData.invoiceNo ? saleData : completedSale;
         if (!targetSale) return;
 
-        // Set dimensions: Standard 2-inch thermal paper is 58mm wide
-        // Height scales dynamically: ~8mm per checkout item row + padding bounds
-        const width = 58;
+        // Set dimensions based on paper size (80mm default or 58mm)
+        const is80mm = paperWidth === '80mm';
+        const width = is80mm ? 80 : 58;
         const height = Math.max(120, targetSale.items.length * 8 + 90);
         const doc = new jsPDF({
             orientation: 'portrait',
@@ -377,14 +342,14 @@ const POSPage = () => {
 
         // Use Sinhala font for flawless alignment
         doc.setFont('Sinhala', 'bold');
-        doc.setFontSize(10);
+        doc.setFontSize(is80mm ? 11 : 10);
 
         let y = 2;
 
         // Try to fetch the logo from the DOM to embed it
         const logoImg = document.getElementById('receipt-logo-img');
         if (logoImg) {
-            const logoSize = 8; // 8mm x 8mm
+            const logoSize = is80mm ? 10 : 8; // 10mm x 10mm for 80mm
             const logoX = (width / 2) - (logoSize / 2);
             doc.addImage(logoImg, 'PNG', logoX, y, logoSize, logoSize);
             y += logoSize + 4;
@@ -396,7 +361,7 @@ const POSPage = () => {
         doc.text("INDIKA BAKERS", width / 2, y, { align: 'center' });
 
         doc.setFont('Sinhala', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(is80mm ? 9 : 8);
         y += 4;
         doc.text("Mehiellagama, Hiripitiya,", width / 2, y, { align: 'center' });
         y += 3;
@@ -404,11 +369,14 @@ const POSPage = () => {
         y += 3;
         doc.text("Tel: 071660 0165", width / 2, y, { align: 'center' });
 
+        const lineDivider = is80mm ? "------------------------------------------------" : "--------------------------------";
+        const rightPos = is80mm ? 75 : 53;
+
         y += 3;
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Metadata grid
-        doc.setFontSize(7);
+        doc.setFontSize(is80mm ? 8 : 7);
         y += 4;
         doc.text(`Invoice No:  ${targetSale.invoiceNo}`, 5, y);
         y += 3;
@@ -421,67 +389,80 @@ const POSPage = () => {
         doc.setFont('Sinhala', 'normal');
         doc.text(`Payment:     ${(targetSale.paymentMethod || 'CASH').toUpperCase()}`, 5, y);
         doc.setFont('Sinhala', 'normal');
-        doc.setFontSize(8);
+        doc.setFontSize(is80mm ? 9 : 8);
 
         y += 3;
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Table Header
         y += 4;
         doc.setFont('Sinhala', 'bold');
-        doc.text("ITEM", 5, y);
-        doc.text("QTY", 35, y);
-        doc.text("TOTAL", 53, y, { align: 'right' });
+        if (is80mm) {
+            doc.text("ITEM", 5, y);
+            doc.text("PRICE", 43, y, { align: 'right' });
+            doc.text("QTY", 56, y, { align: 'center' });
+            doc.text("TOTAL", rightPos, y, { align: 'right' });
+        } else {
+            doc.text("ITEM", 5, y);
+            doc.text("QTY", 35, y);
+            doc.text("TOTAL", rightPos, y, { align: 'right' });
+        }
 
         y += 2.5;
         doc.setFont('Sinhala', 'normal');
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Print table rows
         targetSale.items.forEach(item => {
             y += 4;
-            // Truncate item name cleanly to avoid wrapping overlaps on standard 58mm roll width
             const rawName = item.P_NAME_SINAHAL || item.P_NAME;
-            const displayName = rawName.length > 15 ? rawName.substring(0, 13) + ".." : rawName;
+            const maxNameLen = is80mm ? 22 : 15;
+            const displayName = rawName.length > maxNameLen ? rawName.substring(0, maxNameLen - 2) + ".." : rawName;
+
             doc.text(displayName, 5, y);
-            doc.text(item.qty.toString(), 36, y);
+            if (is80mm) {
+                doc.text(item.unitPrice.toFixed(0), 43, y, { align: 'right' });
+                doc.text(item.qty.toString(), 56, y, { align: 'center' });
+            } else {
+                doc.text(item.qty.toString(), 36, y);
+            }
 
             const totalStr = `Rs.${(item.qty * item.unitPrice).toFixed(0)}`;
-            doc.text(totalStr, 53, y, { align: 'right' });
+            doc.text(totalStr, rightPos, y, { align: 'right' });
         });
 
         y += 3;
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Finance calculations
         y += 4;
         doc.text(`SUBTOTAL:`, 5, y);
-        doc.text(`Rs. ${targetSale.subtotal.toFixed(2)}`, 53, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.subtotal.toFixed(2)}`, rightPos, y, { align: 'right' });
 
         if (targetSale.discount > 0) {
             y += 3.5;
             doc.text(`DISCOUNT:`, 5, y);
-            doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, 53, y, { align: 'right' });
+            doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, rightPos, y, { align: 'right' });
         }
 
         y += 4;
         doc.setFont('Sinhala', 'bold');
         doc.text(`NET TOTAL:`, 5, y);
-        doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, 53, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, rightPos, y, { align: 'right' });
 
         y += 3.5;
         doc.setFont('Sinhala', 'normal');
         doc.text(`PAID ${(targetSale.paymentMethod || 'CASH').toUpperCase()}:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, 53, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, rightPos, y, { align: 'right' });
 
         y += 4;
         doc.setFont('Sinhala', 'bold');
         doc.text(`CHANGE:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, 53, y, { align: 'right' });
+        doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, rightPos, y, { align: 'right' });
 
         y += 3;
         doc.setFont('Sinhala', 'normal');
-        doc.text("--------------------------------", width / 2, y, { align: 'center' });
+        doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Store slogan footer
         y += 5;
@@ -690,9 +671,6 @@ const POSPage = () => {
             // Trigger the configured checkout printing action preference
             if (checkoutAction === 'preview') {
                 triggerDirectPrint(completed);
-            } else if (checkoutAction === 'qz') {
-                triggerDirectPrint(completed);
-                // handleQZPrint(completed);
             } else if (checkoutAction === 'pdf') {
                 triggerDirectPrint(completed);
                 downloadReceiptPDF(completed);
@@ -814,11 +792,11 @@ const POSPage = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 p-6">
 
-            {/* Inline CSS styling for print size configuration (8cm / 80mm width, auto height, no page breaks) */}
+            {/* Inline CSS styling for print size configuration (80mm width default, auto height, horizontally centered on roll) */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @page {
-                    size: 58mm auto; /* Exactly 58mm (2 inch) width and unlimited/auto height based on rows content */
+                    size: ${paperWidth === '58mm' ? '58mm' : '80mm'} auto;
                     margin: 0 !important;
                 }
                 @media print {
@@ -838,6 +816,7 @@ const POSPage = () => {
                         padding: 0 !important;
                         margin-left: 0 !important;
                         left: 0 !important;
+                        right: 0 !important;
                     }
                     /* Configure page and body for roll exact fit without pagination breaks */
                     html, body {
@@ -847,6 +826,10 @@ const POSPage = () => {
                         height: auto !important;
                         background: #fff !important;
                         overflow: visible !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: flex-start !important;
                         
                         /* Absolutely force whole html/body flow to avoid breaking */
                         page-break-inside: avoid !important;
@@ -861,15 +844,16 @@ const POSPage = () => {
                         visibility: visible !important;
                     }
                     #direct-thermal-receipt {
-                        position: absolute !important;
+                        position: relative !important;
                         top: 0 !important;
-                        left: 2% !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        margin: 0 auto !important;
                         display: block !important;
-                        width: 58mm !important;
-                        max-width: 58mm !important;
+                        width: ${paperWidth === '58mm' ? '58mm' : '80mm'} !important;
+                        max-width: 100% !important;
                         height: auto !important;
-                        margin: 0 !important;
-                        padding: 1mm !important;
+                        padding: 2mm !important;
                         box-sizing: border-box !important;
                         background: white !important;
                         color: black !important;
@@ -955,7 +939,7 @@ const POSPage = () => {
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 no-print">
 
                 {/* Left Column: Product Picker OR Sales History */}
-                <div className="xl:col-span-8 flex flex-col gap-4">
+                <div className="xl:col-span-7 flex flex-col gap-4">
                     {activeTab === 'register' ? (
                         <>
                             {/* Search and Categories bar */}
@@ -1156,38 +1140,39 @@ const POSPage = () => {
                 </div>
 
                 {/* Right Column: Register Sidebar Cart */}
-                <div className="xl:col-span-4 bg-white dark:bg-[#1e293b] rounded-3xl border border-slate-200 dark:border-[#334155] shadow-lg flex flex-col justify-between overflow-hidden no-print">
+                <div className="xl:col-span-5 bg-white dark:bg-[#1e293b] rounded-3xl border border-slate-200 dark:border-[#334155] shadow-lg flex flex-col justify-between overflow-hidden no-print">
                     {/* Cart Header */}
                     <div className="p-4 border-b border-slate-100 dark:border-[#334155] flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
                         <div className="flex items-center gap-2">
                             <ShoppingCart className="w-5 h-5 text-blue-600" />
                             <span className="font-extrabold text-base text-slate-900 dark:text-white">Active Order</span>
                             {cart.length > 0 && (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-[10px] font-black">
-                                    {cart.length}
+                                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-xs font-black">
+                                    {cart.length} {cart.length === 1 ? 'item' : 'items'}
                                 </span>
                             )}
                         </div>
                         <button
                             onClick={clearCart}
-                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-lg transition-all"
+                            className="px-2.5 py-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-lg transition-all text-xs font-bold flex items-center gap-1"
                             title="Clear Cart"
                         >
                             <Trash2 className="w-4 h-4" />
+                            Clear
                         </button>
                     </div>
 
                     {/* Cart Items Area */}
-                    <div className="flex-1 p-4 overflow-y-auto max-h-[40vh] 2xl:max-h-[50vh] custom-scrollbar flex flex-col gap-3 relative">
+                    <div className="flex-1 p-3 overflow-y-auto min-h-[130px] max-h-[25vh] 2xl:max-h-[32vh] custom-scrollbar flex flex-col gap-2 relative">
                         {cart.length === 0 ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="flex-1 flex flex-col items-center justify-center py-10 text-center"
+                                className="flex-1 flex flex-col items-center justify-center py-6 text-center"
                             >
-                                <ShoppingCart className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2 animate-pulse" />
-                                <p className="font-semibold text-slate-400 text-xs">Cart is currently empty.</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Select products to begin billing.</p>
+                                <ShoppingCart className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1 animate-pulse" />
+                                <p className="font-bold text-slate-500 text-xs">Cart is currently empty.</p>
+                                <p className="text-[10px] text-slate-400">Select items to begin billing.</p>
                             </motion.div>
                         ) : (
                             <AnimatePresence>
@@ -1199,7 +1184,7 @@ const POSPage = () => {
                                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
                                         transition={{ duration: 0.2 }}
                                         key={item.P_ID}
-                                        className="flex justify-between items-center gap-3 bg-white dark:bg-[#0f172a]/60 p-2.5 rounded-xl border border-slate-200 dark:border-[#334155]/60 shadow-sm hover:shadow-md transition-shadow"
+                                        className="flex justify-between items-center gap-2 bg-slate-50 dark:bg-[#0f172a]/60 px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-[#334155]/60 shadow-sm hover:shadow-md transition-shadow"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <h5 className="font-bold text-xs text-slate-900 dark:text-white truncate">
@@ -1207,32 +1192,42 @@ const POSPage = () => {
                                             </h5>
                                             <span className="text-[10px] text-slate-400">Rs. {item.unitPrice.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                                            <button
-                                                onClick={() => updateQty(item.P_ID, -1)}
-                                                className="p-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded shadow-sm hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-                                            >
-                                                <Minus className="w-3 h-3" />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max={parseFloat(products.find(p => p.P_ID === item.P_ID)?.stock_balance) || 999}
-                                                value={item.qty}
-                                                onChange={(e) => handleQtyChange(item.P_ID, e.target.value)}
-                                                onFocus={(e) => e.target.select()}
-                                                className="w-8 text-center text-xs font-black bg-transparent border-none focus:outline-none py-0.5 text-slate-800 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                            />
-                                            <button
-                                                onClick={() => updateQty(item.P_ID, 1)}
-                                                className="p-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded shadow-sm hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                            </button>
-                                            <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-600 mx-0.5"></div>
+
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 px-1 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700/60">
+                                                <button
+                                                    onClick={() => updateQty(item.P_ID, -1)}
+                                                    className="p-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                                >
+                                                    <Minus className="w-3 h-3" />
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={parseFloat(products.find(p => p.P_ID === item.P_ID)?.stock_balance) || 999}
+                                                    value={item.qty}
+                                                    onChange={(e) => handleQtyChange(item.P_ID, e.target.value)}
+                                                    onFocus={(e) => e.target.select()}
+                                                    className="w-7 text-center text-xs font-black bg-transparent border-none focus:outline-none py-0 text-slate-800 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
+                                                <button
+                                                    onClick={() => updateQty(item.P_ID, 1)}
+                                                    className="p-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                </button>
+                                            </div>
+
+                                            <div className="text-right min-w-[60px]">
+                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 block">
+                                                    Rs. {(item.qty * item.unitPrice).toFixed(2)}
+                                                </span>
+                                            </div>
+
                                             <button
                                                 onClick={() => removeFromCart(item.P_ID)}
                                                 className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
+                                                title="Remove item"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -1244,22 +1239,22 @@ const POSPage = () => {
                     </div>
 
                     {/* Checkout Billing Settings */}
-                    <div className="p-4 border-t border-slate-100 dark:border-[#334155] bg-slate-50 dark:bg-slate-900/20 flex flex-col gap-3">
+                    <div className="p-3 border-t border-slate-100 dark:border-[#334155] bg-slate-50 dark:bg-slate-900/40 flex flex-col gap-2">
                         {/* Customer & Discount Grid */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Customer Name</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-0.5">
+                                <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Customer Name</label>
                                 <input
                                     type="text"
                                     value={customerName}
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     onFocus={(e) => e.target.select()}
-                                    className="w-full px-2.5 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold"
+                                    className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold"
                                     placeholder="Walking Customer"
                                 />
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Discount (%)</label>
+                            <div className="flex flex-col gap-0.5">
+                                <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Discount (%)</label>
                                 <input
                                     type="number"
                                     min="0"
@@ -1267,28 +1262,28 @@ const POSPage = () => {
                                     value={discount || ''}
                                     onChange={(e) => setDiscount(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
                                     onFocus={(e) => e.target.select()}
-                                    className="w-full px-2.5 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-right"
+                                    className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-right"
                                     placeholder="0%"
                                 />
                             </div>
                         </div>
 
                         {/* Payment Selector */}
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Payment Method</label>
+                        <div className="flex flex-col gap-0.5">
+                            <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Payment Method</label>
                             <div className="grid grid-cols-2 gap-1.5">
                                 {[
-                                    { mode: 'Cash', icon: DollarSign, color: 'border-emerald-500/30 text-emerald-600 bg-emerald-500/5' },
-                                    { mode: 'Card', icon: CreditCard, color: 'border-blue-500/30 text-blue-600 bg-blue-500/5' },
-                                    { mode: 'Credit', icon: CreditCard, color: 'border-rose-500/30 text-rose-600 bg-rose-500/5' },
-                                    { mode: 'Online Transfer', icon: Smartphone, color: 'border-indigo-500/30 text-indigo-600 bg-indigo-500/5' },
+                                    { mode: 'Cash', icon: DollarSign, color: 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' },
+                                    { mode: 'Card', icon: CreditCard, color: 'border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10' },
+                                    { mode: 'Credit', icon: CreditCard, color: 'border-rose-500/40 text-rose-600 dark:text-rose-400 bg-rose-500/10' },
+                                    { mode: 'Online Transfer', icon: Smartphone, color: 'border-indigo-500/40 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' },
                                 ].map((item) => (
                                     <button
                                         key={item.mode}
                                         onClick={() => setPaymentMethod(item.mode)}
-                                        className={`flex items-center justify-center gap-1 py-1.5 border rounded-lg font-bold transition-all text-xs ${paymentMethod === item.mode
-                                            ? `${item.color} ring-1 ring-blue-500`
-                                            : 'border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#1e293b]'
+                                        className={`flex items-center justify-center gap-1 py-1 border rounded-lg font-bold transition-all text-xs ${paymentMethod === item.mode
+                                            ? `${item.color} ring-1 ring-blue-500 shadow-sm`
+                                            : 'border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e293b]'
                                             }`}
                                     >
                                         <item.icon className="w-3.5 h-3.5" />
@@ -1300,23 +1295,23 @@ const POSPage = () => {
 
                         {/* Cash drawer drawer reconciler */}
                         {paymentMethod === 'Cash' && (
-                            <div className="flex flex-col gap-2 p-2.5 bg-slate-100 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Cash Tendered (Rs)</label>
+                            <div className="flex flex-col gap-1.5 p-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl shadow-sm">
+                                <div className="grid grid-cols-2 gap-2 items-center">
+                                    <div className="flex flex-col gap-0.5">
+                                        <label className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Cash Tendered (Rs)</label>
                                         <input
                                             type="number"
                                             min="0"
                                             value={amountTendered}
                                             onChange={(e) => setAmountTendered(e.target.value)}
                                             onFocus={(e) => e.target.select()}
-                                            className="w-full px-2 py-0.5 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-md text-xs font-black text-right text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            className="w-full px-2 py-0.5 bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-md text-xs font-bold text-right text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                             placeholder="0.00"
                                         />
                                     </div>
                                     <div className="flex flex-col gap-0.5 justify-center">
-                                        <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Change (Rs)</span>
-                                        <span className={`text-xs font-black text-right pr-1.5 ${getChange() >= 0
+                                        <span className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Change (Rs)</span>
+                                        <span className={`text-xs font-black text-right pr-1 ${getChange() >= 0
                                             ? 'text-emerald-600 dark:text-emerald-400'
                                             : 'text-red-500 animate-pulse'
                                             }`}>
@@ -1326,11 +1321,11 @@ const POSPage = () => {
                                 </div>
 
                                 {/* Quick Cash Buttons */}
-                                <div className="flex flex-wrap gap-1 border-t border-slate-200/50 dark:border-slate-800/50 pt-1.5">
+                                <div className="flex flex-wrap gap-1 border-t border-slate-100 dark:border-slate-800 pt-1">
                                     <button
                                         onClick={() => handleQuickCash('exact')}
                                         type="button"
-                                        className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[8px] font-extrabold transition-all"
+                                        className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[9px] font-extrabold transition-all"
                                     >
                                         Exact
                                     </button>
@@ -1342,9 +1337,9 @@ const POSPage = () => {
                                                 key={val}
                                                 type="button"
                                                 onClick={() => handleQuickCash(val)}
-                                                className={`px-1 py-0.5 rounded text-[8px] font-bold transition-all border ${isSuggested
-                                                    ? 'bg-blue-600 text-white border-blue-500'
-                                                    : 'bg-white dark:bg-[#1e293b] border-slate-200 dark:border-[#334155] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1e293b]'}`}
+                                                className={`px-1 py-0.5 rounded text-[9px] font-bold transition-all border ${isSuggested
+                                                    ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                                                    : 'bg-slate-50 dark:bg-[#1e293b] border-slate-200 dark:border-[#334155] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                                             >
                                                 Rs. {val}
                                             </button>
@@ -1355,18 +1350,18 @@ const POSPage = () => {
                         )}
 
                         {/* Financial Summaries Panel */}
-                        <div className="bg-[#0f172a] rounded-xl p-3 text-white flex flex-col gap-1.5 font-mono border border-[#334155] shadow-inner">
+                        <div className="bg-[#0f172a] rounded-xl p-2.5 text-white flex flex-col gap-1 font-mono border border-[#334155] shadow-inner">
                             <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                                 <span>SUBTOTAL:</span>
                                 <span>Rs. {getSubtotal().toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-[10px] text-red-400 font-bold border-b border-[#334155] pb-1.5">
+                            <div className="flex justify-between text-[10px] text-red-400 font-bold border-b border-[#334155] pb-1">
                                 <span>DISCOUNT ({parseFloat(discount || 0)}%):</span>
                                 <span>- Rs. {(getSubtotal() * ((parseFloat(discount) || 0) / 100)).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-base font-black text-emerald-400 pt-0.5">
+                            <div className="flex justify-between items-center text-sm font-black text-emerald-400 pt-0.5">
                                 <span>NET TOTAL:</span>
-                                <span>Rs. {getNetTotal().toFixed(2)}</span>
+                                <span className="text-base">Rs. {getNetTotal().toFixed(2)}</span>
                             </div>
                         </div>
 
@@ -1380,51 +1375,8 @@ const POSPage = () => {
                                     <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-slate-400" />
                                 </summary>
                                 <div className="p-2.5 border-t border-slate-200 dark:border-[#334155] flex flex-col gap-2.5 bg-white dark:bg-[#1e293b]">
-                                    {/* Silent Printing Toggle */}
-                                    <div className="flex items-center justify-between px-2 py-1.5 bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-slate-800 rounded-lg">
-                                        <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                                            <Printer className="w-3 h-3 text-blue-500" />
-                                            Silent Print
-                                        </span>
-                                        <label className="relative inline-flex items-center cursor-pointer select-none">
-                                            <input
-                                                type="checkbox"
-                                                checked={isSilentPrint}
-                                                onChange={(e) => setIsSilentPrint(e.target.checked)}
-                                                className="sr-only peer"
-                                            />
-                                            <div className="w-7 h-3.5 bg-slate-200 dark:bg-[#334155] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-                                        </label>
-                                    </div>
+                                  
 
-                                    {/* QZ Tray Printer Selector */}
-                                    <div className="flex flex-col gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-slate-800 rounded-lg">
-                                        <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                                            <Printer className="w-3 h-3 text-indigo-500" />
-                                            QZ Thermal Printer
-                                        </label>
-                                        {qzPrinters.length > 0 ? (
-                                            <select
-                                                value={selectedPrinter}
-                                                onChange={(e) => {
-                                                    setSelectedPrinter(e.target.value);
-                                                    localStorage.setItem('qz_selected_printer', e.target.value);
-                                                    showNotification(`Active QZ Printer: ${e.target.value}`, 'success');
-                                                }}
-                                                className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
-                                            >
-                                                {qzPrinters.map((printer, idx) => (
-                                                    <option key={idx} value={printer}>
-                                                        {printer}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <span className="text-[9px] text-slate-400 italic">
-                                                QZ offline. Launch QZ Tray.
-                                            </span>
-                                        )}
-                                    </div>
 
                                     {/* Checkout Action Selector Preference */}
                                     <div className="flex flex-col gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-slate-800 rounded-lg">
@@ -1442,9 +1394,49 @@ const POSPage = () => {
                                             className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-blue-500 text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
                                         >
                                             <option value="preview">👀 Show Preview Modal Only</option>
-                                            <option value="qz">⚡ Auto Silent Print (QZ Tray)</option>
-                                            <option value="pdf">📥 Auto Download PDF Receipt</option>
                                             <option value="browser">🖨️ Auto Open Browser Print</option>
+                                            <option value="pdf">📥 Auto Download PDF Receipt</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Paper Size Selector */}
+                                    <div className="flex flex-col gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-slate-800 rounded-lg">
+                                        <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                            <Printer className="w-3 h-3 text-emerald-500" />
+                                            Paper Roll Width
+                                        </label>
+                                        <select
+                                            value={paperWidth}
+                                            onChange={(e) => {
+                                                setPaperWidth(e.target.value);
+                                                localStorage.setItem('pos_paper_width', e.target.value);
+                                                showNotification(`Paper roll width set to ${e.target.value}!`, 'success');
+                                            }}
+                                            className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-emerald-500 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
+                                        >
+                                            <option value="80mm">80mm Paper (Standard Thermal Roll - 3 inch)</option>
+                                            <option value="58mm">58mm Paper (Small Thermal Roll - 2 inch)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Receipt Font Selector */}
+                                    <div className="flex flex-col gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-slate-800 rounded-lg">
+                                        <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                            <Printer className="w-3 h-3 text-purple-500" />
+                                            Receipt Font Family
+                                        </label>
+                                        <select
+                                            value={receiptFont}
+                                            onChange={(e) => {
+                                                setReceiptFont(e.target.value);
+                                                localStorage.setItem('pos_receipt_font', e.target.value);
+                                                showNotification(`Receipt font set to ${e.target.value}!`, 'success');
+                                            }}
+                                            className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-purple-500 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
+                                        >
+                                            <option value="Consolas">Consolas (Crisp & Dark - Recommended)</option>
+                                            <option value="Segoe UI">Segoe UI (Modern Clean Sans)</option>
+                                            <option value="Courier New">Courier New (Classic Monospace)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1473,14 +1465,14 @@ const POSPage = () => {
                 </div>
             </div>
 
-            {/* Direct Printable Thermal Receipt (Completely hidden on screen, formatted perfectly to exactly 10cm / 100mm width, auto height for thermal printers) */}
+            {/* Direct Printable Thermal Receipt (Completely hidden on screen, formatted to paperWidth - 80mm default) */}
             {completedSale && (
-                <div id="direct-thermal-receipt" style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: '10.5px', lineHeight: '1.2', color: 'black', background: 'white', width: '100%', boxSizing: 'border-box', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div id="direct-thermal-receipt" style={{ fontFamily: getReceiptFontFamily(), fontSize: paperWidth === '80mm' ? '11px' : '10.5px', lineHeight: '1.2', color: 'black', background: 'white', width: '100%', boxSizing: 'border-box', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
 
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <img src="/logo.png" alt="Logo" style={{ height: '35px', margin: '0 auto 4px auto', display: 'block', filter: 'grayscale(100%)' }} />
-                        <h3 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
+                        <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
                         <span style={{ fontSize: '10px', display: 'block' }}>Mehiellagama, Hiripitiya, Nikadalupotha</span>
                         <span style={{ fontSize: '9px', display: 'block' }}>Tel: 071660 0165</span>
                         <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
@@ -1513,17 +1505,21 @@ const POSPage = () => {
                     <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
 
                     {/* Items Grid Header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', fontWeight: 'bold', fontSize: '10px', marginBottom: '4px', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <span style={{ gridColumn: 'span 7' }}>ITEM</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', fontWeight: 'bold', fontSize: paperWidth === '80mm' ? '11px' : '10.5px', marginBottom: '4px', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <span style={{ gridColumn: paperWidth === '80mm' ? 'span 5' : 'span 7' }}>ITEM</span>
+                        {paperWidth === '80mm' && <span style={{ gridColumn: 'span 2', textAlign: 'right' }}>PRICE</span>}
                         <span style={{ gridColumn: 'span 2', textAlign: 'center' }}>QTY</span>
                         <span style={{ gridColumn: 'span 3', textAlign: 'right' }}>TOTAL</span>
                     </div>
 
                     {/* Items Table */}
-                    <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4.5px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10.5px', display: 'flex', flexDirection: 'column', gap: '4.5px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         {completedSale.items.map((item, idx) => (
                             <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                <span style={{ gridColumn: 'span 7', textAlign: 'left', wordBreak: 'break-word', paddingRight: '2px' }}>{item.P_NAME}</span>
+                                <span style={{ gridColumn: paperWidth === '80mm' ? 'span 5' : 'span 7', textAlign: 'left', wordBreak: 'break-word', paddingRight: '2px' }}>{item.P_NAME_SINAHAL || item.P_NAME}</span>
+                                {paperWidth === '80mm' && (
+                                    <span style={{ gridColumn: 'span 2', textAlign: 'right' }}>{item.unitPrice.toFixed(0)}</span>
+                                )}
                                 <span style={{ gridColumn: 'span 2', textAlign: 'center' }}>{item.qty}</span>
                                 <span style={{ gridColumn: 'span 3', textAlign: 'right' }}>Rs.{(item.qty * item.unitPrice).toFixed(2)}</span>
                             </div>
@@ -1533,7 +1529,7 @@ const POSPage = () => {
                     <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
 
                     {/* Totals Summary */}
-                    <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '3px', fontWeight: 'bold', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10.5px', display: 'flex', flexDirection: 'column', gap: '3px', fontWeight: 'bold', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'normal' }}>
                             <span>SUBTOTAL:</span>
                             <span>Rs. {completedSale.subtotal.toFixed(2)}</span>
@@ -1544,7 +1540,7 @@ const POSPage = () => {
                                 <span>- Rs. {completedSale.discount.toFixed(2)}</span>
                             </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '900', borderTop: '1px dashed black', paddingTop: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '13px' : '12px', fontWeight: '900', borderTop: '1px dashed black', paddingTop: '3px', marginTop: '2px' }}>
                             <span>NET TOTAL:</span>
                             <span>Rs. {completedSale.netAmount.toFixed(2)}</span>
                         </div>
@@ -1571,8 +1567,8 @@ const POSPage = () => {
 
                     {/* Footer note */}
                     <div style={{ textAlign: 'center', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
-
+                        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
+                        <span style={{ fontSize: '9px', color: '#555' }}>Indika Bakers - Sweetening Your Day!</span>
                     </div>
 
                 </div>
@@ -1581,19 +1577,19 @@ const POSPage = () => {
             {/* Visual Receipt Roll Preview Modal */}
             {completedSale && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto no-print">
-                    <div className="bg-slate-100 dark:bg-slate-900 rounded-3xl p-6 shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-200">
+                    <div className={`bg-slate-100 dark:bg-slate-900 rounded-3xl p-6 shadow-2xl ${paperWidth === '80mm' ? 'max-w-lg' : 'max-w-md'} w-full border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-200`}>
 
                         {/* Header instructions */}
                         <div className="w-full text-center">
                             <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-wider flex items-center justify-center gap-2">
                                 <Printer className="w-4 h-4 text-emerald-500 animate-pulse" />
-                                Virtual Receipt Roll (80mm)
+                                Virtual Receipt Roll ({paperWidth})
                             </h3>
                             <p className="text-[10px] text-slate-400 mt-1">Visualizing continuous roll alignment on screen</p>
                         </div>
 
                         {/* Interactive Receipt Roll Viewport */}
-                        <div className="w-[80mm] max-h-[400px] overflow-y-auto p-4 bg-white shadow-lg border border-slate-200 rounded-xl relative flex flex-col gap-1 font-mono text-[11px] text-black">
+                        <div style={{ width: paperWidth === '80mm' ? '80mm' : '58mm', fontFamily: getReceiptFontFamily() }} className="max-h-[420px] overflow-y-auto p-4 bg-white shadow-lg border border-slate-200 rounded-xl relative flex flex-col gap-1 text-[11px] text-black">
                             {/* Realistic Paper Jagged Torn Header */}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[linear-gradient(45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%)] bg-[size:6px_6px]"></div>
 
@@ -1617,17 +1613,23 @@ const POSPage = () => {
                             <div className="border-b border-dashed border-black my-1.5"></div>
 
                             {/* Table Header */}
-                            <div className="grid grid-cols-12 font-bold mb-1">
-                                <span className="col-span-7">ITEM</span>
+                            <div className="grid grid-cols-12 font-bold mb-1 text-[10px]">
+                                <span className={paperWidth === '80mm' ? "col-span-5" : "col-span-7"}>ITEM</span>
+                                {paperWidth === '80mm' && <span className="col-span-2 text-right">PRICE</span>}
                                 <span className="col-span-2 text-center">QTY</span>
                                 <span className="col-span-3 text-right">TOTAL</span>
                             </div>
 
                             {/* Table rows */}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 text-[10px]">
                                 {completedSale.items.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 leading-tight">
-                                        <span className="col-span-7 truncate pr-1">{item.P_NAME}</span>
+                                        <span className={`${paperWidth === '80mm' ? 'col-span-5' : 'col-span-7'} truncate pr-1`}>
+                                            {item.P_NAME_SINAHAL || item.P_NAME}
+                                        </span>
+                                        {paperWidth === '80mm' && (
+                                            <span className="col-span-2 text-right">{item.unitPrice.toFixed(0)}</span>
+                                        )}
                                         <span className="col-span-2 text-center">{item.qty}</span>
                                         <span className="col-span-3 text-right">Rs.{(item.qty * item.unitPrice).toFixed(0)}</span>
                                     </div>
@@ -1673,14 +1675,6 @@ const POSPage = () => {
                                     Save as PDF / Print
                                 </button>
                             </div>
-
-                            <button
-                                onClick={() => handleQZPrint(completedSale)}
-                                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-indigo-500/10 active:scale-[0.98]"
-                            >
-                                <Printer className="w-3.5 h-3.5 text-indigo-200 animate-pulse" />
-                                ⚡ Silent Hardware Print (QZ Tray)
-                            </button>
 
                             <button
                                 onClick={() => setCompletedSale(null)}
