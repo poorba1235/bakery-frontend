@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { sinhalaFontBase64 } from '../utils/SinhalaFont';
+import { logoBase64 } from '../utils/logoBase64';
 import {
     AlertTriangle,
     CheckCircle,
@@ -59,11 +60,11 @@ const POSPage = () => {
     const [selectedProductForPrice, setSelectedProductForPrice] = useState(null);
 
     // Post-Checkout Print Action Selection ('preview' | 'browser' | 'pdf')
-    const [checkoutAction, setCheckoutAction] = useState(localStorage.getItem('pos_checkout_action') || 'preview');
+    const [checkoutAction, setCheckoutAction] = useState('preview');
     // Paper Width Preference ('80mm' | '58mm') - default to 80mm
-    const [paperWidth, setPaperWidth] = useState(localStorage.getItem('pos_paper_width') || '80mm');
+    const [paperWidth, setPaperWidth] = useState('80mm');
     // Receipt Font Preference ('Consolas' | 'Segoe UI' | 'Courier New') - default to Consolas
-    const [receiptFont, setReceiptFont] = useState(localStorage.getItem('pos_receipt_font') || 'Consolas');
+    const [receiptFont, setReceiptFont] = useState('Consolas');
 
     const getReceiptFontFamily = () => {
         if (receiptFont === 'Segoe UI') {
@@ -346,14 +347,14 @@ const POSPage = () => {
 
         let y = 2;
 
-        // Try to fetch the logo from the DOM to embed it
-        const logoImg = document.getElementById('receipt-logo-img');
-        if (logoImg) {
-            const logoSize = is80mm ? 10 : 8; // 10mm x 10mm for 80mm
-            const logoX = (width / 2) - (logoSize / 2);
-            doc.addImage(logoImg, 'PNG', logoX, y, logoSize, logoSize);
+        // Embed logo in PDF directly from Base64 Data URI
+        const logoSize = is80mm ? 10 : 8; // 10mm x 10mm for 80mm
+        const logoX = (width / 2) - (logoSize / 2);
+        try {
+            doc.addImage(logoBase64, 'PNG', logoX, y, logoSize, logoSize);
             y += logoSize + 4;
-        } else {
+        } catch (imgErr) {
+            console.warn('PDF logo rendering fallback:', imgErr);
             y = 10;
         }
 
@@ -413,8 +414,10 @@ const POSPage = () => {
         doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Print table rows
+        doc.setFontSize(is80mm ? 11 : 10);
+        doc.setFont('Sinhala', 'normal');
         targetSale.items.forEach(item => {
-            y += 4;
+            y += 4.5;
             const rawName = item.P_NAME_SINAHAL || item.P_NAME;
             const maxNameLen = is80mm ? 22 : 15;
             const displayName = rawName.length > maxNameLen ? rawName.substring(0, maxNameLen - 2) + ".." : rawName;
@@ -431,21 +434,24 @@ const POSPage = () => {
             doc.text(totalStr, rightPos, y, { align: 'right' });
         });
 
-        y += 3;
+        y += 3.5;
         doc.text(lineDivider, width / 2, y, { align: 'center' });
 
         // Finance calculations
-        y += 4;
+        y += 5;
+        doc.setFontSize(is80mm ? 12 : 11);
+        doc.setFont('Sinhala', 'normal');
         doc.text(`SUBTOTAL:`, 5, y);
         doc.text(`Rs. ${targetSale.subtotal.toFixed(2)}`, rightPos, y, { align: 'right' });
 
         if (targetSale.discount > 0) {
-            y += 3.5;
+            y += 4.5;
             doc.text(`DISCOUNT:`, 5, y);
             doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, rightPos, y, { align: 'right' });
         }
 
-        y += 4;
+        y += 5;
+        doc.setFontSize(is80mm ? 14 : 12.5);
         doc.setFont('Sinhala', 'bold');
         doc.text(`NET TOTAL:`, 5, y);
         doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, rightPos, y, { align: 'right' });
@@ -796,17 +802,12 @@ const POSPage = () => {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @page {
-                    size: ${paperWidth === '58mm' ? '58mm' : '80mm'} auto;
                     margin: 0 !important;
                 }
                 @media print {
                     /* Hide specific structural layouts but NOT #root itself so the DOM stays active */
                     header, aside, nav, button, footer, .no-print {
                         display: none !important;
-                    }
-                    /* Set default visibility of body to hidden */
-                    body {
-                        visibility: hidden !important;
                     }
                     /* Reset structural parent layouts to zero height constraints, padding, and margins to print at absolute top edge */
                     main, .max-w-7xl, #root, .min-h-screen, [class*="min-h-"] {
@@ -863,6 +864,19 @@ const POSPage = () => {
                         break-inside: avoid !important;
                         page-break-after: avoid !important;
                         break-after: avoid !important;
+                    }
+                    #direct-thermal-receipt img {
+                        display: block !important;
+                        margin: 0 auto 4px auto !important;
+                        max-width: 50mm !important;
+                        height: 40px !important;
+                        width: auto !important;
+                        visibility: visible !important;
+                        filter: none !important;
+                        -webkit-filter: none !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        opacity: 1 !important;
                     }
                 }
                 @media screen {
@@ -1155,8 +1169,7 @@ const POSPage = () => {
                         <button
                             onClick={clearCart}
                             className="px-2.5 py-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-lg transition-all text-xs font-bold flex items-center gap-1"
-                            title="Clear Cart"
-                        >
+                            title="Clear Cart">
                             <Trash2 className="w-4 h-4" />
                             Clear
                         </button>
@@ -1471,7 +1484,7 @@ const POSPage = () => {
 
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <img src="/logo.png" alt="Logo" style={{ height: '35px', margin: '0 auto 4px auto', display: 'block', filter: 'grayscale(100%)' }} />
+                        <img src={logoBase64} alt="Logo" style={{ height: '40px', width: 'auto', margin: '0 auto 4px auto', display: 'block', objectFit: 'contain' }} />
                         <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
                         <span style={{ fontSize: '10px', display: 'block' }}>Mehiellagama, Hiripitiya, Nikadalupotha</span>
                         <span style={{ fontSize: '9px', display: 'block' }}>Tel: 071660 0165</span>
@@ -1513,15 +1526,15 @@ const POSPage = () => {
                     </div>
 
                     {/* Items Table */}
-                    <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10.5px', display: 'flex', flexDirection: 'column', gap: '4.5px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div style={{ fontSize: paperWidth === '80mm' ? '12px' : '11px', fontWeight: 'normal', display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         {completedSale.items.map((item, idx) => (
-                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                <span style={{ gridColumn: paperWidth === '80mm' ? 'span 5' : 'span 7', textAlign: 'left', wordBreak: 'break-word', paddingRight: '2px' }}>{item.P_NAME_SINAHAL || item.P_NAME}</span>
+                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', width: '100%', alignItems: 'center', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                <span style={{ gridColumn: paperWidth === '80mm' ? 'span 5' : 'span 7', textAlign: 'left', wordBreak: 'break-word', paddingRight: '2px', fontSize: paperWidth === '80mm' ? '12px' : '11px' }}>{item.P_NAME_SINAHAL || item.P_NAME}</span>
                                 {paperWidth === '80mm' && (
-                                    <span style={{ gridColumn: 'span 2', textAlign: 'right' }}>{item.unitPrice.toFixed(0)}</span>
+                                    <span style={{ gridColumn: 'span 2', textAlign: 'right', fontSize: '14px', fontWeight: '500' }}>{item.unitPrice.toFixed(0)}</span>
                                 )}
-                                <span style={{ gridColumn: 'span 2', textAlign: 'center' }}>{item.qty}</span>
-                                <span style={{ gridColumn: 'span 3', textAlign: 'right' }}>Rs.{(item.qty * item.unitPrice).toFixed(2)}</span>
+                                <span style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '14px', fontWeight: '500' }}>{item.qty}</span>
+                                <span style={{ gridColumn: 'span 3', textAlign: 'right', fontSize: '14px', fontWeight: '500' }}>Rs.{(item.qty * item.unitPrice).toFixed(2)}</span>
                             </div>
                         ))}
                     </div>
@@ -1529,18 +1542,18 @@ const POSPage = () => {
                     <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
 
                     {/* Totals Summary */}
-                    <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10.5px', display: 'flex', flexDirection: 'column', gap: '3px', fontWeight: 'bold', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'normal' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '14.5px' : '13px', fontWeight: '500' }}>
                             <span>SUBTOTAL:</span>
                             <span>Rs. {completedSale.subtotal.toFixed(2)}</span>
                         </div>
                         {completedSale.discount > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'normal', color: 'red' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '13.5px' : '12px', color: 'red' }}>
                                 <span>FLAT DISCOUNT:</span>
                                 <span>- Rs. {completedSale.discount.toFixed(2)}</span>
                             </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '13px' : '12px', fontWeight: '900', borderTop: '1px dashed black', paddingTop: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '17px' : '15px', fontWeight: 'bold', borderTop: '1px dashed black', paddingTop: '4px', marginTop: '3px' }}>
                             <span>NET TOTAL:</span>
                             <span>Rs. {completedSale.netAmount.toFixed(2)}</span>
                         </div>
@@ -1549,7 +1562,7 @@ const POSPage = () => {
                     <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
 
                     {/* Reconcile payment details */}
-                    <div style={{ fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10px', display: 'flex', flexDirection: 'column', gap: '2px', fontWeight: 'normal', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
 
                         {completedSale.paymentMethod === 'Cash' && completedSale.amountTendered > 0 && (
                             <>
@@ -1557,7 +1570,7 @@ const POSPage = () => {
                                     <span>CASH TENDERED:</span>
                                     <span>Rs. {completedSale.amountTendered.toFixed(2)}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span>CHANGE RETURNED:</span>
                                     <span>Rs. {completedSale.amountChange.toFixed(2)}</span>
                                 </div>
@@ -1568,7 +1581,7 @@ const POSPage = () => {
                     {/* Footer note */}
                     <div style={{ textAlign: 'center', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
-                        <span style={{ fontSize: '9px', color: '#555' }}>Indika Bakers - Sweetening Your Day!</span>
+                        <span style={{ fontSize: '9px', color: '#555' }}>Powerd By KryptonicTec - +94 71 749 6207</span>
                     </div>
 
                 </div>
@@ -1594,7 +1607,7 @@ const POSPage = () => {
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[linear-gradient(45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%)] bg-[size:6px_6px]"></div>
 
                             <div className="text-center font-bold mb-2 pt-1 flex flex-col items-center">
-                                <img id="receipt-logo-img" src="/logo.png" alt="Logo" className="h-5 w-auto mb-1 opacity-90 grayscale" crossOrigin="anonymous" />
+                                <img id="receipt-logo-img" src={logoBase64} alt="Logo" className="h-10 w-auto mb-1 mx-auto block object-contain" />
                                 <span className="text-[14px] tracking-wide block">INDIKA BAKERS</span>
                                 <span className="text-[9px] block text-slate-500 leading-tight">Mehiellagama, Hiripitiya,</span>
                                 <span className="text-[9px] block text-slate-500 leading-tight">Nikadalupotha</span>
@@ -1621,17 +1634,17 @@ const POSPage = () => {
                             </div>
 
                             {/* Table rows */}
-                            <div className="flex flex-col gap-1 text-[10px]">
+                            <div className="flex flex-col gap-1 text.12px">
                                 {completedSale.items.map((item, idx) => (
-                                    <div key={idx} className="grid grid-cols-12 leading-tight">
-                                        <span className={`${paperWidth === '80mm' ? 'col-span-5' : 'col-span-7'} truncate pr-1`}>
+                                    <div key={idx} className="grid grid-cols-12 leading-tight items-center">
+                                        <span className={`${paperWidth === '80mm' ? 'col-span-5' : 'col-span-7'} truncate pr-1 text-[11.5px]`}>
                                             {item.P_NAME_SINAHAL || item.P_NAME}
                                         </span>
                                         {paperWidth === '80mm' && (
-                                            <span className="col-span-2 text-right">{item.unitPrice.toFixed(0)}</span>
+                                            <span className="col-span-2 text-right text-[13.5px] font-medium">{item.unitPrice.toFixed(0)}</span>
                                         )}
-                                        <span className="col-span-2 text-center">{item.qty}</span>
-                                        <span className="col-span-3 text-right">Rs.{(item.qty * item.unitPrice).toFixed(0)}</span>
+                                        <span className="col-span-2 text-center text-[13.5px] font-medium">{item.qty}</span>
+                                        <span className="col-span-3 text-right text-[13.5px] font-medium">Rs.{(item.qty * item.unitPrice).toFixed(0)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1639,12 +1652,12 @@ const POSPage = () => {
                             <div className="border-b border-dashed border-black my-1.5"></div>
 
                             {/* Totals */}
-                            <div className="flex flex-col gap-1 text-right text-[10px]">
-                                <div className="flex justify-between"><span>SUBTOTAL:</span><span>Rs. {completedSale.subtotal.toFixed(2)}</span></div>
-                                {completedSale.discount > 0 && <div className="flex justify-between text-red-600"><span>DISCOUNT:</span><span>-Rs. {completedSale.discount.toFixed(2)}</span></div>}
-                                <div className="flex justify-between font-bold text-[11px]"><span>NET TOTAL:</span><span>Rs. {completedSale.netAmount.toFixed(2)}</span></div>
-                                <div className="flex justify-between"><span>PAID {(completedSale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
-                                <div className="flex justify-between font-bold text-emerald-600"><span>Balance:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
+                            <div className="flex flex-col gap-1 text-right">
+                                <div className="flex justify-between text-[13.5px] font-medium"><span>SUBTOTAL:</span><span>Rs. {completedSale.subtotal.toFixed(2)}</span></div>
+                                {completedSale.discount > 0 && <div className="flex justify-between text-red-600 text-[12.5px]"><span>DISCOUNT:</span><span>-Rs. {completedSale.discount.toFixed(2)}</span></div>}
+                                <div className="flex justify-between font-bold text-[16px] pt-1 border-t border-dashed border-black"><span>NET TOTAL:</span><span>Rs. {completedSale.netAmount.toFixed(2)}</span></div>
+                                <div className="flex justify-between text-[12px]"><span>PAID {(completedSale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
+                                <div className="flex justify-between font-medium text-[12px] text-emerald-600"><span>Balance:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
                             </div>
 
                             <div className="border-b border-dashed border-black my-1.5"></div>
