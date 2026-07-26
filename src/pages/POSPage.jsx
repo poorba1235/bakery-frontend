@@ -1388,7 +1388,7 @@ const POSPage = () => {
                                     <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-slate-400" />
                                 </summary>
                                 <div className="p-2.5 border-t border-slate-200 dark:border-[#334155] flex flex-col gap-2.5 bg-white dark:bg-[#1e293b]">
-                                  
+
 
 
                                     {/* Checkout Action Selector Preference */}
