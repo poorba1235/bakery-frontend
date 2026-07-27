@@ -1710,10 +1710,8 @@ const OrderManagement = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-2">
-                                            <button onClick={() => handleViewDetails(order)} className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm"><Eye className="w-4 h-4" /></button>
-                                            {/* {parseInt(order.OR_STATUS) === 2 && (
-                                                <button onClick={() => fetchOrderBatches(order.OR_ID, true)} className="p-3 text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all shadow-sm" title="Re-print Barcodes"><Printer className="w-4 h-4" /></button>
-                                            )} */}
+                                            <button onClick={() => handleViewDetails(order)} className="p-3 text-blue-500 hover:bg-blue-500/10 rounded-2xl transition-all shadow-sm" title="View Order Details"><Eye className="w-4 h-4" /></button>
+                                            <button onClick={() => handleViewProductionSheet(order.OR_ID)} className="p-3 text-indigo-600 hover:bg-indigo-500/10 rounded-2xl transition-all shadow-sm" title="View & Print Production Sheet"><Printer className="w-4 h-4" /></button>
                                             {parseInt(order.OR_STATUS) === 0 && (
                                                 <>
                                                     <button onClick={() => handleEditClick(order)} className="p-3 text-amber-500 hover:bg-amber-500/10 rounded-2xl transition-all shadow-sm" title="Edit Order"><FileText className="w-4 h-4" /></button>
@@ -1892,16 +1890,14 @@ const OrderManagement = () => {
 
                             <div className="p-10 border-t border-slate-200 dark:border-[#334155] bg-slate-50/50 dark:bg-[#0f172a]/50 flex justify-end gap-4 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                                 <button onClick={() => setViewingOrder(null)} className="px-10 py-5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-3xl uppercase text-[10px] tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all border border-slate-300/50 dark:border-slate-700">Close Panel</button>
-                                {isSystemAdmin && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleViewProductionSheet(viewingOrder.OR_ID)}
-                                        className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-5 rounded-3xl font-black transition-all uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-500/30 active:scale-95"
-                                    >
-                                        <FileText className="w-4 h-4" />
-                                        <span>View Production Sheet</span>
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleViewProductionSheet(viewingOrder.OR_ID)}
+                                    className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-5 rounded-3xl font-black transition-all uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-500/30 active:scale-95 cursor-pointer"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    <span>View Production Sheet</span>
+                                </button>
                                 {isSystemAdmin && parseInt(viewingOrder.OR_STATUS) === 0 && (
                                     <>
                                         <button

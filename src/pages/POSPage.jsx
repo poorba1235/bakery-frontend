@@ -63,15 +63,21 @@ const POSPage = () => {
     const [checkoutAction, setCheckoutAction] = useState('preview');
     // Paper Width Preference ('80mm' | '58mm') - default to 80mm
     const [paperWidth, setPaperWidth] = useState('80mm');
-    // Receipt Font Preference ('Consolas' | 'Segoe UI' | 'Courier New') - default to Consolas
-    const [receiptFont, setReceiptFont] = useState('Consolas');
+    // Receipt Font Preference ('Segoe UI' | 'Consolas' | 'Trebuchet MS' | 'Courier New' | 'Arial') - default to Segoe UI
+    const [receiptFont, setReceiptFont] = useState(() => localStorage.getItem('pos_receipt_font') || 'Segoe UI');
 
     const getReceiptFontFamily = () => {
         if (receiptFont === 'Segoe UI') {
-            return "'Segoe UI', 'Noto Sans Sinhala', Arial, sans-serif";
+            return "'Segoe UI', system-ui, 'Noto Sans Sinhala', Arial, sans-serif";
+        }
+        if (receiptFont === 'Trebuchet MS') {
+            return "'Trebuchet MS', 'Segoe UI', 'Noto Sans Sinhala', sans-serif";
         }
         if (receiptFont === 'Courier New') {
             return "'Courier New', Courier, monospace";
+        }
+        if (receiptFont === 'Arial') {
+            return "Arial, 'Helvetica Neue', 'Noto Sans Sinhala', sans-serif";
         }
         return "'Consolas', 'Segoe UI', 'Noto Sans Sinhala', Arial, sans-serif";
     };
@@ -345,30 +351,33 @@ const POSPage = () => {
         doc.setFont('Sinhala', 'bold');
         doc.setFontSize(is80mm ? 11 : 10);
 
-        let y = 2;
+        // Brand Header Box containing logo and details
+        let y = 3;
+        const boxX = 4;
+        const boxWidth = width - 8;
+        const boxStartY = y;
 
-        // Embed logo in PDF directly from Base64 Data URI
-        const logoSize = is80mm ? 10 : 8; // 10mm x 10mm for 80mm
+        const logoSize = is80mm ? 10 : 8;
         const logoX = (width / 2) - (logoSize / 2);
+        y += 1;
         try {
             doc.addImage(logoBase64, 'PNG', logoX, y, logoSize, logoSize);
             y += logoSize + 4;
         } catch (imgErr) {
             console.warn('PDF logo rendering fallback:', imgErr);
-            y = 10;
+            y += 4;
         }
 
-        // Brand Header
         doc.text("INDIKA BAKERS", width / 2, y, { align: 'center' });
-
         doc.setFont('Sinhala', 'normal');
-        doc.setFontSize(is80mm ? 9 : 8);
-        y += 4;
+        doc.setFontSize(is80mm ? 10.5 : 9.5);
+        y += 4.5;
         doc.text("Mehiellagama, Hiripitiya,", width / 2, y, { align: 'center' });
-        y += 3;
+        y += 3.5;
         doc.text("Nikadalupotha", width / 2, y, { align: 'center' });
-        y += 3;
+        y += 3.5;
         doc.text("Tel: 071660 0165", width / 2, y, { align: 'center' });
+        doc.rect(boxX, boxStartY, boxWidth, (y - boxStartY) + 2);
 
         const lineDivider = is80mm ? "------------------------------------------------" : "--------------------------------";
         const rightPos = is80mm ? 75 : 53;
@@ -495,118 +504,6 @@ const POSPage = () => {
             amountTendered: 1500.00,
             amountChange: 200.00,
             items: [
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
-                { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
-                { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
-                { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
                 { P_NAME: "Butter Croissant (Fresh)", qty: 4, unitPrice: 120.00 },
                 { P_NAME: "Chocolate Glazed Donut", qty: 3, unitPrice: 100.00 },
                 { P_NAME: "Premium White Bread (Large)", qty: 2, unitPrice: 240.00 },
@@ -671,7 +568,6 @@ const POSPage = () => {
                 items: [...cart]
             };
 
-            showNotification('Sale completed successfully!', 'success');
             clearCart();
 
             // Trigger the configured checkout printing action preference
@@ -843,6 +739,8 @@ const POSPage = () => {
                     /* Force only the designated thermal receipt container and its children to be visible */
                     #direct-thermal-receipt, #direct-thermal-receipt * {
                         visibility: visible !important;
+                        box-shadow: none !important;
+                        outline: none !important;
                     }
                     #direct-thermal-receipt {
                         position: relative !important;
@@ -854,10 +752,15 @@ const POSPage = () => {
                         width: ${paperWidth === '58mm' ? '58mm' : '80mm'} !important;
                         max-width: 100% !important;
                         height: auto !important;
-                        padding: 2mm !important;
+                        padding: 2mm 2mm 0 2mm !important;
+                        padding-top: 2mm !important;
+                        margin-top: 0 !important;
                         box-sizing: border-box !important;
                         background: white !important;
                         color: black !important;
+                        border: none !important;
+                        outline: none !important;
+                        box-shadow: none !important;
                         
                         /* Prevent any random vertical page breaking inside receipt content */
                         page-break-inside: avoid !important;
@@ -1445,11 +1348,12 @@ const POSPage = () => {
                                                 localStorage.setItem('pos_receipt_font', e.target.value);
                                                 showNotification(`Receipt font set to ${e.target.value}!`, 'success');
                                             }}
-                                            className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-purple-500 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
-                                        >
-                                            <option value="Consolas">Consolas (Crisp & Dark - Recommended)</option>
-                                            <option value="Segoe UI">Segoe UI (Modern Clean Sans)</option>
+                                            className="w-full text-[10px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-[#334155] rounded p-1 focus:ring-1 focus:ring-purple-500 text-slate-800 dark:text-slate-200 font-bold cursor-pointer" >
+                                            <option value="Segoe UI">Segoe UI (Modern Clean Sans - Highly Recommended)</option>
+                                            <option value="Trebuchet MS">Trebuchet MS (Bold & Crisp Sans)</option>
+                                            <option value="Consolas">Consolas (Dark Monospace)</option>
                                             <option value="Courier New">Courier New (Classic Monospace)</option>
+                                            <option value="Arial">Arial (Standard Sans-Serif)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1469,7 +1373,6 @@ const POSPage = () => {
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                                 <>
-                                    <CheckCircle className="w-4 h-4" />
                                     Complete Checkout
                                 </>
                             )}
@@ -1480,15 +1383,17 @@ const POSPage = () => {
 
             {/* Direct Printable Thermal Receipt (Completely hidden on screen, formatted to paperWidth - 80mm default) */}
             {completedSale && (
-                <div id="direct-thermal-receipt" style={{ fontFamily: getReceiptFontFamily(), fontSize: paperWidth === '80mm' ? '11px' : '10.5px', lineHeight: '1.2', color: 'black', background: 'white', width: '100%', boxSizing: 'border-box', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div id="direct-thermal-receipt" style={{ fontFamily: getReceiptFontFamily(), fontSize: paperWidth === '80mm' ? '12px' : '11px', lineHeight: '1.25', color: 'black', background: 'white', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', boxShadow: 'none', padding: '2mm 2mm 0 2mm', margin: '0 auto', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
 
                     {/* Header */}
-                    <div style={{ textAlign: 'center', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <img src={logoBase64} alt="Logo" style={{ height: '40px', width: 'auto', margin: '0 auto 4px auto', display: 'block', objectFit: 'contain' }} />
-                        <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
-                        <span style={{ fontSize: '10px', display: 'block' }}>Mehiellagama, Hiripitiya, Nikadalupotha</span>
-                        <span style={{ fontSize: '9px', display: 'block' }}>Tel: 071660 0165</span>
-                        <div style={{ borderBottom: '1px dashed black', margin: '6px 0' }}></div>
+                    <div style={{ textAlign: 'center', marginTop: '0', paddingTop: '0', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <div style={{ border: '1.5px solid black', padding: '8px 12px', borderRadius: '4px', margin: '2mm 3px 6px 3px', textAlign: 'center' }}>
+                            <img src={logoBase64} alt="Logo" style={{ height: '42px', width: 'auto', margin: '0 auto 4px auto', display: 'block', objectFit: 'contain' }} />
+                            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 3px 0', letterSpacing: '1px' }}>INDIKA BAKERS</h3>
+                            <span style={{ fontSize: '13px', fontWeight: 'normal', display: 'block', lineHeight: '1.3' }}>Mehiellagama, Hiripitiya, Nikadalupotha</span>
+                            <span style={{ fontSize: '12.5px', fontWeight: 'normal', display: 'block', marginTop: '2px' }}>Tel: 071660 0165</span>
+                        </div>
+                        <div style={{ borderBottom: '1px dashed black', margin: '8px 0' }}></div>
                     </div>
 
                     {/* Metadata */}
@@ -1579,9 +1484,9 @@ const POSPage = () => {
                     </div>
 
                     {/* Footer note */}
-                    <div style={{ textAlign: 'center', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '2px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
-                        <span style={{ fontSize: '9px', color: '#555' }}>Powerd By KryptonicTec - +94 71 749 6207</span>
+                    <div style={{ textAlign: 'center', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '3px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold' }}>THANK YOU FOR SHOPPING!</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#333' }}>Powered By KryptonicTec - +94 71 749 6207</span>
                     </div>
 
                 </div>
@@ -1602,20 +1507,22 @@ const POSPage = () => {
                         </div>
 
                         {/* Interactive Receipt Roll Viewport */}
-                        <div style={{ width: paperWidth === '80mm' ? '80mm' : '58mm', fontFamily: getReceiptFontFamily() }} className="max-h-[420px] overflow-y-auto p-4 bg-white shadow-lg border border-slate-200 rounded-xl relative flex flex-col gap-1 text-[11px] text-black">
+                        <div style={{ width: paperWidth === '80mm' ? '80mm' : '58mm', fontFamily: getReceiptFontFamily() }} className="max-h-[420px] overflow-y-auto px-4 py-3 bg-white shadow-md border-none rounded-xl relative flex flex-col gap-1 text-[11px] text-black">
                             {/* Realistic Paper Jagged Torn Header */}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[linear-gradient(45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f1f5f9_33.333%,#f1f5f9_66.667%,transparent_66.667%)] bg-[size:6px_6px]"></div>
 
-                            <div className="text-center font-bold mb-2 pt-1 flex flex-col items-center">
-                                <img id="receipt-logo-img" src={logoBase64} alt="Logo" className="h-10 w-auto mb-1 mx-auto block object-contain" />
-                                <span className="text-[14px] tracking-wide block">INDIKA BAKERS</span>
-                                <span className="text-[9px] block text-slate-500 leading-tight">Mehiellagama, Hiripitiya,</span>
-                                <span className="text-[9px] block text-slate-500 leading-tight">Nikadalupotha</span>
-                                <span className="text-[9px] block text-slate-500">Tel: 071660 0165</span>
-                                <div className="border-b border-dashed border-black my-1.5"></div>
+                            <div className="text-center font-bold mb-2 pt-1 flex flex-col items-center w-full">
+                                <div className="border-[1.5px] border-black rounded-md px-4 py-2.5 mt-2 mb-1 mx-1 text-center flex flex-col items-center w-full">
+                                    <img id="receipt-logo-img" src={logoBase64} alt="Logo" className="h-10 w-auto mb-1.5 mx-auto block object-contain" />
+                                    <span className="text-[17px] font-black tracking-wide block text-black">INDIKA BAKERS</span>
+                                    <span className="text-[12.5px] font-normal block text-black leading-snug">Mehiellagama, Hiripitiya,</span>
+                                    <span className="text-[12.5px] font-normal block text-black leading-snug">Nikadalupotha</span>
+                                    <span className="text-[12px] font-normal block text-black mt-0.5">Tel: 071660 0165</span>
+                                </div>
+                                <div className="border-b border-dashed border-black my-2 w-full"></div>
                             </div>
 
-                            <div className="flex flex-col gap-0.5 text-[7.5px] leading-tight">
+                            <div className="flex flex-col gap-1 text-[9.5px] leading-tight font-semibold">
                                 <div className="flex justify-between"><span>Invoice:</span><strong>{completedSale.invoiceNo}</strong></div>
                                 <div className="flex justify-between"><span>Date:</span><span>{new Date(completedSale.date).toLocaleString()}</span></div>
                                 <div className="flex justify-between"><span>Cashier:</span><span className="capitalize">{completedSale.cashier}</span></div>
@@ -1662,9 +1569,9 @@ const POSPage = () => {
 
                             <div className="border-b border-dashed border-black my-1.5"></div>
 
-                            <div className="text-center font-bold mt-1 text-[10px] leading-tight">
+                            <div className="text-center font-bold mt-1 text-[11px] leading-tight">
                                 <span>THANK YOU FOR SHOPPING!</span>
-                                <span className="block text-[8.5px] text-slate-500 font-normal">Indika Bakers - Sweetening Your Day!</span>
+                                <span className="block text-[10.5px] text-slate-700 dark:text-slate-300 font-semibold mt-0.5">Powered By KryptonicTec - +94 71 749 6207</span>
                             </div>
                         </div>
 
