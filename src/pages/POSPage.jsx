@@ -1415,7 +1415,7 @@ const POSPage = () => {
                             <span>{completedSale.customerName}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>PAYMENT METHOD:</span>
+                            <span>Payment Method:</span>
                             <span style={{ fontWeight: 'bold' }}>{completedSale.paymentMethod}</span>
                         </div>
                     </div>
