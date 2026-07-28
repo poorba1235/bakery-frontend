@@ -1397,7 +1397,7 @@ const POSPage = () => {
                     </div>
 
                     {/* Metadata */}
-                    <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '2.5px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div style={{ fontSize: paperWidth === '80mm' ? '12px' : '11px', display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '8px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span>Invoice No:</span>
                             <span style={{ fontWeight: 'bold' }}>{completedSale.invoiceNo}</span>
@@ -1522,7 +1522,7 @@ const POSPage = () => {
                                 <div className="border-b border-dashed border-black my-2 w-full"></div>
                             </div>
 
-                            <div className="flex flex-col gap-1 text-[9.5px] leading-tight font-semibold">
+                            <div className="flex flex-col gap-1 text-[11.5px] leading-tight font-semibold">
                                 <div className="flex justify-between"><span>Invoice:</span><strong>{completedSale.invoiceNo}</strong></div>
                                 <div className="flex justify-between"><span>Date:</span><span>{new Date(completedSale.date).toLocaleString()}</span></div>
                                 <div className="flex justify-between"><span>Cashier:</span><span className="capitalize">{completedSale.cashier}</span></div>
