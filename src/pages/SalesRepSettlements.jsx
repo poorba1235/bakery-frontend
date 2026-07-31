@@ -31,6 +31,8 @@ const SalesRepSettlements = () => {
 
     const roles = currentUser?.roles?.split(',') || [];
     const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
+    const isStaff = roles.some(role => role.toLowerCase() === 'staff');
+    const canSettle = isAdmin || isStaff;
 
     useEffect(() => {
         fetchData();
@@ -153,12 +155,13 @@ const SalesRepSettlements = () => {
         const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
         const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
         const currentTotalNetCash = grossCash - dayDiscount;
+        const totalExpiredValue = parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0;
+        const totalDisplayDiscount = parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0;
+        const displayNetValue = currentTotalNetCash - totalExpiredValue - totalDisplayDiscount;
 
-        const originalNetCash = parseFloat(activeSettlement.TOTAL_NET_CASH) || 0;
-        const penalty = Math.max(0, currentTotalNetCash - originalNetCash);
-        const actualPaidCash = activeSettlement.STATUS === 1
-            ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0
-            : (parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0) + penalty;
+        const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
+        const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
+        const actualPaidCash = displayNetValue - totalCredit + debtCollection;
 
         const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
         const currentCommission = actualPaidCash * (commissionPercent / 100);
@@ -171,30 +174,30 @@ const SalesRepSettlements = () => {
                 <title>Settlement A4 Report - #${activeSettlement.SETTLE_ID}</title>
                 <style>
                     @media print {
-                        @page { size: auto; margin: 10mm 10mm 5mm 10mm; }
-                        body { zoom: 0.95; }
+                        @page { size: auto; margin: 8mm 10mm 5mm 10mm; }
+                        body { zoom: 0.76; }
                     }
-                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 15px; font-size: 14px; color: #333; }
-                    .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
+                    body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 10px; font-size: 14px; color: #333; }
+                    .header-section { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 8px; }
                     .logo-area { text-align: left; }
                     .logo-area img { height: 40px; }
-                    .logo-area h1 { margin: 5px 0 0 0; font-size: 20px; color: #000; }
-                    .logo-area p { margin: 2px 0; color: #555; font-size: 11px; }
+                    .logo-area h1 { margin: 3px 0 0 0; font-size: 20px; color: #000; }
+                    .logo-area p { margin: 1px 0; color: #555; font-size: 11px; }
                     .info-area { text-align: right; }
-                    .info-area h2 { margin: 0 0 5px 0; font-size: 18px; color: #000; }
-                    .info-area p { margin: 2px 0; font-weight: bold; font-size: 11px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-                    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: center; }
-                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+                    .info-area h2 { margin: 0 0 3px 0; font-size: 18px; color: #000; }
+                    .info-area p { margin: 1px 0; font-weight: bold; font-size: 11px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+                    th, td { border: 1px solid #ccc; padding: 7px 8px; text-align: center; font-size: 15px; }
+                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 14px; }
                     td.left { text-align: left; }
                     td.right { text-align: right; }
                     .summary-section { display: flex; justify-content: flex-end; }
-                    .summary-box { width: 300px; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background-color: #fafafa; }
-                    .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+                    .summary-box { width: 300px; border: 1px solid #ccc; padding: 8px; border-radius: 5px; background-color: #fafafa; }
+                    .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12.5px; }
                     .summary-row.bold { font-weight: bold; color: #000; }
-                    .summary-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #333; padding-top: 8px; margin-top: 8px; }
+                    .summary-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #333; padding-top: 6px; margin-top: 6px; }
                     .summary-row.deduction { color: #d32f2f; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 10px; color: #777; border-top: 1px solid #ccc; padding-top: 10px; }
+                    .footer { text-align: center; margin-top: 12px; font-size: 10px; color: #777; border-top: 1px solid #ccc; padding-top: 8px; }
                 </style>
             </head>
             <body>
@@ -246,15 +249,17 @@ const SalesRepSettlements = () => {
                     <div class="summary-box">
                         <div class="summary-row"><span>Total Loaded Qty:</span> <span>${totalLoaded}</span></div>
                         <div class="summary-row"><span>Total Return Qty:</span> <span>${totalUnsold}</span></div>
-                        <div class="summary-row" style="margin-bottom: 20px;"><span>Total Given Credit:</span> <span>Rs. ${(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</span></div>
+                        <div class="summary-row" style="margin-bottom: 10px;"><span>Total Given Credit:</span> <span>Rs. ${(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</span></div>
                         <div class="summary-row" style="color: #6b21a8;"><span>Debt Collected:</span> <span>Rs. ${(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</span></div>
 
                         
                         <div class="summary-row bold"><span>Gross Value:</span> <span>Rs. ${grossCash.toFixed(2)}</span></div>
                         <div class="summary-row deduction"><span>Global Discount:</span> <span>- Rs. ${dayDiscount.toFixed(2)}</span></div>
-                        <div class="summary-row bold" style="border-top:1px dotted #ccc; padding-top:5px;"><span>Net Value:</span> <span>Rs. ${currentTotalNetCash.toFixed(2)}</span></div>
+                        <div class="summary-row deduction"><span>Total Return/Expire Amount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0).toFixed(2)}</span></div>
+                        <div class="summary-row deduction"><span>Total Display Discount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0).toFixed(2)}</span></div>
+                        <div class="summary-row bold" style="border-top:1px dotted #ccc; padding-top:5px;"><span>Net Value:</span> <span>Rs. ${displayNetValue.toFixed(2)}</span></div>
                         
-                        <div class="summary-row" style="margin-top: 15px;"><span>Total Actual Cash:</span> <span>Rs. ${actualPaidCash.toFixed(2)}</span></div>
+                        <div class="summary-row" style="margin-top: 10px;"><span>Total Actual Cash:</span> <span>Rs. ${actualPaidCash.toFixed(2)}</span></div>
 
                         <div class="summary-row deduction"><span>Commission (${commissionPercent}%):</span> <span>- Rs. ${currentCommission.toFixed(2)}</span></div>
                         
@@ -507,7 +512,7 @@ const SalesRepSettlements = () => {
                                                         {item.LOADED_QTY}
                                                     </td>
                                                     <td className="px-4 py-3 text-center">
-                                                        {isAdmin && activeSettlement.STATUS !== 1 ? (
+                                                        {canSettle && activeSettlement.STATUS !== 1 ? (
                                                             <input
                                                                 type="number"
                                                                 min="0"
@@ -534,7 +539,7 @@ const SalesRepSettlements = () => {
                                                     </td>
 
                                                     <td className="px-6 py-4 text-right">
-                                                        {isAdmin && activeSettlement.STATUS !== 1 ? (
+                                                        {canSettle && activeSettlement.STATUS !== 1 ? (
                                                             <input
                                                                 type="number"
                                                                 disabled
@@ -563,12 +568,13 @@ const SalesRepSettlements = () => {
                                     const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
                                     const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
                                     const currentTotalNetCash = grossCash - dayDiscount;
+                                    const totalExpiredValue = parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0;
+                                    const totalDisplayDiscount = parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0;
+                                    const displayNetValue = currentTotalNetCash - totalExpiredValue - totalDisplayDiscount;
 
-                                    const originalNetCash = parseFloat(activeSettlement.TOTAL_NET_CASH) || 0;
-                                    const penalty = Math.max(0, currentTotalNetCash - originalNetCash);
-                                    const actualPaidCash = activeSettlement.STATUS === 1
-                                        ? parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0
-                                        : (parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0) + penalty;
+                                    const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
+                                    const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
+                                    const actualPaidCash = displayNetValue - totalCredit + debtCollection;
 
                                     const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
                                     const currentCommission = actualPaidCash * (commissionPercent / 100);
@@ -592,7 +598,7 @@ const SalesRepSettlements = () => {
                                                     <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
                                                 <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
                                                     <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
                                                     <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
@@ -608,6 +614,14 @@ const SalesRepSettlements = () => {
                                                 <div className="bg-rose-50 dark:bg-rose-500/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-500/20">
                                                     <div className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Global Discounts</div>
                                                     <div className="text-xl font-black text-rose-700 dark:text-rose-300 font-mono">- Rs. {dayDiscount.toFixed(2)}</div>
+                                                </div>
+                                                <div className="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-2xl border border-orange-200 dark:border-orange-500/20">
+                                                    <div className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Return/Expire Amount</div>
+                                                    <div className="text-xl font-black text-orange-700 dark:text-orange-300 font-mono">- Rs. {(parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0).toFixed(2)}</div>
+                                                </div>
+                                                <div className="bg-pink-50 dark:bg-pink-500/10 p-4 rounded-2xl border border-pink-200 dark:border-pink-500/20">
+                                                    <div className="text-[10px] font-black text-pink-600 dark:text-pink-400 uppercase tracking-widest mb-1">Total Display Discount</div>
+                                                    <div className="text-xl font-black text-pink-700 dark:text-pink-300 font-mono">- Rs. {(parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0).toFixed(2)}</div>
                                                 </div>
                                                 <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-200 dark:border-red-500/20">
                                                     <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Credit Given</div>
@@ -627,7 +641,7 @@ const SalesRepSettlements = () => {
                                 })()}
                             </div>
 
-                            {isAdmin && activeSettlement.STATUS !== 1 ? (
+                            {canSettle && activeSettlement.STATUS !== 1 ? (
                                 <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-between gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
                                     <div className="flex gap-3 ml-auto">
                                         <button type="button" onClick={() => handleSave(0)} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#0f172a] transition-colors shadow-sm flex items-center">

@@ -266,8 +266,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                     <button
                                         onClick={() => toggleMenu(item.name)}
                                         className={`w-full flex items-center px-4 py-3 rounded-xl transition-all group ${expandedMenus.includes(item.name)
-                                                ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold'
-                                                : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
+                                            ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold'
+                                            : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
                                             }`}
                                     >
                                         <item.icon className="shrink-0 w-5 h-5" />
@@ -294,8 +294,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                                             to={sub.path}
                                                             onClick={() => setIsMobileOpen(false)}
                                                             className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${location.pathname === sub.path
-                                                                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-600/10 font-bold'
-                                                                    : 'text-slate-500 dark:text-[#64748b] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-600/5'
+                                                                ? 'text-blue-600 bg-blue-50 dark:bg-blue-600/10 font-bold'
+                                                                : 'text-slate-500 dark:text-[#64748b] hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-600/5'
                                                                 }`}
                                                         >
                                                             <sub.icon className="w-4 h-4 mr-3" />
@@ -311,8 +311,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                     to={item.path}
                                     onClick={() => setIsMobileOpen(false)}
                                     className={`flex items-center px-4 py-3 rounded-xl transition-all group ${location.pathname === item.path
-                                            ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold shadow-sm shadow-blue-600/5'
-                                            : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
+                                        ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 font-bold shadow-sm shadow-blue-600/5'
+                                        : 'text-slate-600 dark:text-[#94a3b8] hover:bg-slate-100 dark:hover:bg-[#1e293b]'
                                         }`}
                                 >
                                     <item.icon className="shrink-0 w-5 h-5" />

@@ -48,7 +48,7 @@ const SalesRepOrders = () => {
     const hasPermission = perms.includes('order-manage');
 
     const roles = currentUser?.roles?.split(',') || [];
-    const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
+    const isAdmin = roles.some(role => role.toLowerCase() === 'admin') || roles.some(role => role.toLowerCase() === 'staff');
 
     useEffect(() => {
         fetchData();

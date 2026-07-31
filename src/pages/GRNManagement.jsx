@@ -90,7 +90,7 @@ const GRNManagement = () => {
     const perms = currentUser?.permissions?.split(',') || [];
     const hasPermission = perms.includes('raw-material');
     const roles = currentUser?.roles?.toLowerCase() || '';
-    const isAdmin = roles.includes('admin') || roles.includes('super admin');
+    const isAdmin = roles.includes('admin') || roles.includes('staff');
 
     // New GRN State
     const [newGRN, setNewGRN] = useState({
