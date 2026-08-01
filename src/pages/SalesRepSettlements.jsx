@@ -174,7 +174,13 @@ const SalesRepSettlements = () => {
                 <title>Settlement A4 Report - #${activeSettlement.SETTLE_ID}</title>
                 <style>
                     @media print {
-                        @page { size: auto; margin: 8mm 10mm 5mm 10mm; }
+                        @page {
+                            size: auto;
+                            margin-top: 8mm;
+                            margin-left: 10mm;
+                            margin-right: 10mm;
+                            margin-bottom: 5mm;
+                        }
                         body { zoom: 0.76; }
                     }
                     body { font-family: 'Arial', sans-serif; margin: 0 auto; padding: 10px; font-size: 14px; color: #333; }
@@ -643,6 +649,10 @@ const SalesRepSettlements = () => {
 
                             {canSettle && activeSettlement.STATUS !== 1 ? (
                                 <div className="p-6 border-t border-slate-200 dark:border-[#334155] flex justify-between gap-3 bg-slate-50/50 dark:bg-[#0f172a]/50 rounded-b-3xl">
+                                    <button type="button" onClick={handlePrint} className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 border border-blue-600 hover:bg-blue-700 transition-colors shadow-sm flex items-center">
+                                        <Printer className="w-4 h-4 mr-2" />
+                                        Print Summary
+                                    </button>
                                     <div className="flex gap-3 ml-auto">
                                         <button type="button" onClick={() => handleSave(0)} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#0f172a] transition-colors shadow-sm flex items-center">
                                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
