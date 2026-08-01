@@ -150,8 +150,7 @@ const SalesRepSettlements = () => {
     const handlePrint = () => {
         if (!activeSettlement) return;
 
-        const totalLoaded = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0), 0);
-        const totalUnsold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0), 0);
+        const totalSold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.SOLD_QTY) || 0), 0);
         const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
         const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
         const currentTotalNetCash = grossCash - dayDiscount;
@@ -161,7 +160,8 @@ const SalesRepSettlements = () => {
 
         const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
         const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
-        const actualPaidCash = displayNetValue - totalCredit + debtCollection;
+        const creditDebitChange = totalCredit - debtCollection;
+        const actualPaidCash = displayNetValue - creditDebitChange;
 
         const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
         const currentCommission = actualPaidCash * (commissionPercent / 100);
@@ -253,8 +253,7 @@ const SalesRepSettlements = () => {
 
                 <div class="summary-section">
                     <div class="summary-box">
-                        <div class="summary-row"><span>Total Loaded Qty:</span> <span>${totalLoaded}</span></div>
-                        <div class="summary-row"><span>Total Return Qty:</span> <span>${totalUnsold}</span></div>
+                        <div class="summary-row"><span>Total Sold Qty:</span> <span>${totalSold}</span></div>
                         <div class="summary-row" style="margin-bottom: 10px;"><span>Total Given Credit:</span> <span>Rs. ${(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</span></div>
                         <div class="summary-row" style="color: #6b21a8;"><span>Debt Collected:</span> <span>Rs. ${(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</span></div>
 
@@ -264,6 +263,7 @@ const SalesRepSettlements = () => {
                         <div class="summary-row deduction"><span>Total Return/Expire Amount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0).toFixed(2)}</span></div>
                         <div class="summary-row deduction"><span>Total Display Discount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0).toFixed(2)}</span></div>
                         <div class="summary-row bold" style="border-top:1px dotted #ccc; padding-top:5px;"><span>Net Value:</span> <span>Rs. ${displayNetValue.toFixed(2)}</span></div>
+                        <div class="summary-row ${creditDebitChange >= 0 ? 'deduction' : ''}" style="${creditDebitChange < 0 ? 'color: #16a34a; font-weight: bold;' : ''}"><span>Credit-Debit-Change:</span> <span>${creditDebitChange >= 0 ? '-' : '+'} Rs. ${Math.abs(creditDebitChange).toFixed(2)}</span></div>
                         
                         <div class="summary-row" style="margin-top: 10px;"><span>Total Actual Cash:</span> <span>Rs. ${actualPaidCash.toFixed(2)}</span></div>
 
@@ -580,7 +580,8 @@ const SalesRepSettlements = () => {
 
                                     const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
                                     const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
-                                    const actualPaidCash = displayNetValue - totalCredit + debtCollection;
+                                    const creditDebitChange = totalCredit - debtCollection;
+                                    const actualPaidCash = displayNetValue - creditDebitChange;
 
                                     const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
                                     const currentCommission = actualPaidCash * (commissionPercent / 100);
@@ -604,7 +605,7 @@ const SalesRepSettlements = () => {
                                                     <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-4">
                                                 <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
                                                     <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
                                                     <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
@@ -631,7 +632,13 @@ const SalesRepSettlements = () => {
                                                 </div>
                                                 <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-200 dark:border-red-500/20">
                                                     <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Credit Given</div>
-                                                    <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">Rs. {(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</div>
+                                                    <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">Rs. {totalCredit.toFixed(2)}</div>
+                                                </div>
+                                                <div className="bg-cyan-50 dark:bg-cyan-500/10 p-4 rounded-2xl border border-cyan-200 dark:border-cyan-500/20">
+                                                    <div className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-widest mb-1">Credit-Debit Change</div>
+                                                    <div className={`text-xl font-black font-mono ${creditDebitChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                                        {creditDebitChange >= 0 ? '- Rs.' : '+ Rs.'} {Math.abs(creditDebitChange).toFixed(2)}
+                                                    </div>
                                                 </div>
                                                 <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
                                                     <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Commission ({commissionPercent}%)</div>
