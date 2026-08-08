@@ -276,6 +276,18 @@ const SalesRepSettlements = () => {
                             </tr>
                         </tbody>
                     </table>
+
+                    <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                        <div style="width: 300px; border: 1.5px solid #000; padding: 10px; border-radius: 6px; background-color: #fafafa;">
+                            <h3 style="margin: 0 0 8px 0; border-bottom: 2px solid #000; padding-bottom: 3px; font-size: 13px; text-transform: uppercase; font-weight: bold; color: #000; text-align: left;">Final Handover Summary</h3>
+                            <table style="width: 100%; border: none; margin: 0;">
+                                <tr style="background: none;"><td style="text-align: left; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Total Paid Amount:</td><td style="text-align: right; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Rs. ${totalPaidCash.toFixed(2)}</td></tr>
+                                <tr style="background: none;"><td style="text-align: left; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Commission:</td><td style="text-align: right; border: none; padding: 3px 0; font-size: 12px; font-weight: bold; color: #d32f2f;">- Rs. ${currentCommission.toFixed(2)}</td></tr>
+                                <tr style="background: none;"><td colspan="2" style="border: none; padding: 0; border-bottom: 1.5px solid #000; height: 1px;"></td></tr>
+                                <tr style="background: none;"><td style="text-align: left; border: none; padding: 5px 0 0 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">Handover Amount:</td><td style="text-align: right; border: none; padding: 5px 0 0 0; font-size: 13px; font-weight: bold; color: #2e7d32;">Rs. ${currentHandover.toFixed(2)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <script>
@@ -588,51 +600,81 @@ const SalesRepSettlements = () => {
                                     const currentHandover = actualPaidCash - currentCommission;
 
                                     return (
-                                        <div className="flex flex-col gap-4 pt-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-500/20">
-                                                    <div className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Total Loaded Qty</div>
-                                                    <div className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono">{totalLoaded}</div>
-                                                </div>
+                                        <div className="flex flex-col gap-6 pt-4">
+                                            {/* Stock Summary Row */}
+                                            <div>
+                                                <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Stock Summary</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                                    <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-500/20">
+                                                        <div className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Total Loaded Qty</div>
+                                                        <div className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono">{totalLoaded}</div>
+                                                    </div>
 
-                                                <div className="bg-sky-50 dark:bg-sky-500/10 p-4 rounded-2xl border border-sky-200 dark:border-sky-500/20">
-                                                    <div className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Net Sold Qty (Sold - Returned)</div>
-                                                    <div className="text-xl font-black text-sky-700 dark:text-sky-300 font-mono">{netSold}</div>
-                                                </div>
+                                                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
+                                                        <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Total Sold Qty</div>
+                                                        <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">{totalSold}</div>
+                                                    </div>
 
-                                                <div className="bg-teal-50 dark:bg-teal-500/10 p-4 rounded-2xl border border-teal-200 dark:border-teal-500/20">
-                                                    <div className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-1">Total Unsold Qty (Leftover)</div>
-                                                    <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
+                                                    <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-200 dark:border-red-500/20">
+                                                        <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Returned Qty (Expired)</div>
+                                                        <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">{totalExpired}</div>
+                                                    </div>
+
+                                                    <div className="bg-teal-50 dark:bg-teal-500/10 p-4 rounded-2xl border border-teal-200 dark:border-teal-500/20">
+                                                        <div className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest mb-1">Total Unsold Qty (Leftover)</div>
+                                                        <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
-                                                <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
-                                                    <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
-                                                    <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
-                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Actual Cash</div>
-                                                    <div className="text-xl font-black text-slate-800 dark:text-white font-mono">Rs. {actualPaidCash.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-rose-50 dark:bg-rose-500/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-500/20">
-                                                    <div className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Global Discounts</div>
-                                                    <div className="text-xl font-black text-rose-700 dark:text-rose-300 font-mono">- Rs. {dayDiscount.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-2xl border border-orange-200 dark:border-orange-500/20">
-                                                    <div className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Return/Expire Amount</div>
-                                                    <div className="text-xl font-black text-orange-700 dark:text-orange-300 font-mono">- Rs. {(parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0).toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-pink-50 dark:bg-pink-500/10 p-4 rounded-2xl border border-pink-200 dark:border-pink-500/20">
-                                                    <div className="text-[10px] font-black text-pink-600 dark:text-pink-400 uppercase tracking-widest mb-1">Total Display Discount</div>
-                                                    <div className="text-xl font-black text-pink-700 dark:text-pink-300 font-mono">- Rs. {(parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0).toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-200 dark:border-red-500/20">
-                                                    <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Credit Given</div>
-                                                    <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">Rs. {totalCredit.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
-                                                    <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Commission ({commissionPercent}%)</div>
-                                                    <div className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono">- Rs. {currentCommission.toFixed(2)}</div>
+
+                                            {/* Financial Summary Row */}
+                                            <div>
+                                                <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Financial Summary</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4">
+                                                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
+                                                        <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
+                                                        <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-rose-50 dark:bg-rose-500/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-500/20">
+                                                        <div className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Global Discounts</div>
+                                                        <div className="text-xl font-black text-rose-700 dark:text-rose-300 font-mono">- Rs. {dayDiscount.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-2xl border border-orange-200 dark:border-orange-500/20">
+                                                        <div className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">Total Return/Expire</div>
+                                                        <div className="text-xl font-black text-orange-700 dark:text-orange-300 font-mono">- Rs. {totalExpiredValue.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-pink-50 dark:bg-pink-500/10 p-4 rounded-2xl border border-pink-200 dark:border-pink-500/20">
+                                                        <div className="text-[10px] font-black text-pink-600 dark:text-pink-400 uppercase tracking-widest mb-1">Display Discount</div>
+                                                        <div className="text-xl font-black text-pink-700 dark:text-pink-300 font-mono">- Rs. {totalDisplayDiscount.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-200 dark:border-red-500/20">
+                                                        <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Credit Given</div>
+                                                        <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">Rs. {totalCredit.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-500/20">
+                                                        <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Paid (Invoices)</div>
+                                                        <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">Rs. {totalPaidCash.toFixed(2)}</div>
+                                                    </div>
+
+                                                    {/* <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
+                                                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Actual Cash</div>
+                                                        <div className="text-xl font-black text-slate-800 dark:text-white font-mono">Rs. {actualPaidCash.toFixed(2)}</div>
+                                                    </div> */}
+
+                                                    <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
+                                                        <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Commission ({commissionPercent}%)</div>
+                                                        <div className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono">- Rs. {currentCommission.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-emerald-100/50 dark:bg-emerald-500/20 p-4 rounded-2xl border border-emerald-300 dark:border-emerald-500/40">
+                                                        <div className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Final Handover</div>
+                                                        <div className="text-xl font-black text-emerald-800 dark:text-emerald-300 font-mono">Rs. {currentHandover.toFixed(2)}</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

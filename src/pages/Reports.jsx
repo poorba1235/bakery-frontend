@@ -356,7 +356,7 @@ const Reports = () => {
                                 </div>
                             )}
 
-                            {showDateModal !== 'recipe-cost' && showDateModal !== 'ref-credit-today' && (
+                            {showDateModal !== 'recipe-cost' && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">From Date (Optional)</label>
