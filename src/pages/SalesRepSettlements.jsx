@@ -159,12 +159,11 @@ const SalesRepSettlements = () => {
         const displayNetValue = currentTotalNetCash - totalExpiredValue - totalDisplayDiscount;
 
         const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
-        const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
-        const creditDebitChange = totalCredit - debtCollection;
-        const actualPaidCash = displayNetValue - creditDebitChange;
+        const totalPaidCash = parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0;
+        const actualPaidCash = displayNetValue - totalCredit;
 
         const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
-        const currentCommission = actualPaidCash * (commissionPercent / 100);
+        const currentCommission = totalPaidCash * (commissionPercent / 100);
         const currentHandover = actualPaidCash - currentCommission;
 
         const html = `
@@ -193,16 +192,15 @@ const SalesRepSettlements = () => {
                     .info-area h2 { margin: 0 0 3px 0; font-size: 18px; color: #000; }
                     .info-area p { margin: 1px 0; font-weight: bold; font-size: 11px; }
                     table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-                    th, td { border: 1px solid #ccc; padding: 7px 8px; text-align: center; font-size: 15px; }
-                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 14px; }
+                    th, td { border: 1px solid #ccc; padding: 7px 8px; text-align: center; font-size: 18px; }
+                    th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 18px; }
                     td.left { text-align: left; }
                     td.right { text-align: right; }
-                    .summary-section { display: flex; justify-content: flex-end; }
-                    .summary-box { width: 300px; border: 1px solid #ccc; padding: 8px; border-radius: 5px; background-color: #fafafa; }
-                    .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12.5px; }
-                    .summary-row.bold { font-weight: bold; color: #000; }
-                    .summary-row.total { font-weight: bold; font-size: 16px; border-top: 2px solid #333; padding-top: 6px; margin-top: 6px; }
-                    .summary-row.deduction { color: #d32f2f; }
+                    .summary-section { margin-top: 20px; }
+                    .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    .summary-table th, .summary-table td { border: 1px solid #ccc; padding: 10px 8px; text-align: center; font-size: 14px; }
+                    .summary-table th { background-color: #f4f4f4; color: #000; font-weight: bold; text-transform: uppercase; font-size: 13px; }
+                    .summary-table td.deduction { color: #d32f2f; font-weight: bold; }
                     .footer { text-align: center; margin-top: 12px; font-size: 10px; color: #777; border-top: 1px solid #ccc; padding-top: 8px; }
                 </style>
             </head>
@@ -252,25 +250,32 @@ const SalesRepSettlements = () => {
                 </table>
 
                 <div class="summary-section">
-                    <div class="summary-box">
-                        <div class="summary-row"><span>Total Sold Qty:</span> <span>${totalSold}</span></div>
-                        <div class="summary-row" style="margin-bottom: 10px;"><span>Total Given Credit:</span> <span>Rs. ${(parseFloat(activeSettlement.TOTAL_CREDIT) || 0).toFixed(2)}</span></div>
-                        <div class="summary-row" style="color: #6b21a8;"><span>Debt Collected:</span> <span>Rs. ${(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</span></div>
-
-                        
-                        <div class="summary-row bold"><span>Gross Value:</span> <span>Rs. ${grossCash.toFixed(2)}</span></div>
-                        <div class="summary-row deduction"><span>Global Discount:</span> <span>- Rs. ${dayDiscount.toFixed(2)}</span></div>
-                        <div class="summary-row deduction"><span>Total Return/Expire Amount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0).toFixed(2)}</span></div>
-                        <div class="summary-row deduction"><span>Total Display Discount:</span> <span>- Rs. ${(parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0).toFixed(2)}</span></div>
-                        <div class="summary-row bold" style="border-top:1px dotted #ccc; padding-top:5px;"><span>Net Value:</span> <span>Rs. ${displayNetValue.toFixed(2)}</span></div>
-                        <div class="summary-row ${creditDebitChange >= 0 ? 'deduction' : ''}" style="${creditDebitChange < 0 ? 'color: #16a34a; font-weight: bold;' : ''}"><span>Credit-Debit-Change:</span> <span>${creditDebitChange >= 0 ? '-' : '+'} Rs. ${Math.abs(creditDebitChange).toFixed(2)}</span></div>
-                        
-                        <div class="summary-row" style="margin-top: 10px;"><span>Total Actual Cash:</span> <span>Rs. ${actualPaidCash.toFixed(2)}</span></div>
-
-                        <div class="summary-row deduction"><span>Commission (${commissionPercent}%):</span> <span>- Rs. ${currentCommission.toFixed(2)}</span></div>
-                        
-                        <div class="summary-row total"><span>FINAL HANDOVER:</span> <span>Rs. ${currentHandover.toFixed(2)}</span></div>
-                    </div>
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Total Sold Qty</th>
+                                <th>Gross Value</th>
+                                <th>Total Paid Amount (All Invoices)</th>
+                                <th>Total Given Credit</th>
+                                <th>Global Discount</th>
+                                <th>Total Return/Expire Amount</th>
+                                <th>Total Display Discount</th>
+                                <th>Commission (${commissionPercent}%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>${totalSold}</b></td>
+                                <td>Rs. ${grossCash.toFixed(2)}</td>
+                                <td><b>Rs. ${totalPaidCash.toFixed(2)}</b></td>
+                                <td>Rs. ${totalCredit.toFixed(2)}</td>
+                                <td class="deduction">Rs. ${dayDiscount.toFixed(2)}</td>
+                                <td class="deduction">Rs. ${totalExpiredValue.toFixed(2)}</td>
+                                <td class="deduction">Rs. ${totalDisplayDiscount.toFixed(2)}</td>
+                                <td class="deduction">Rs. ${currentCommission.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <script>
@@ -384,7 +389,6 @@ const SalesRepSettlements = () => {
                                 <th className="px-6 py-4">Cash (Paid)</th>
                                 <th className="px-6 py-4">Credit</th>
                                 <th className="px-6 py-4">Comm.</th>
-                                <th className="px-6 py-4">Handover</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
@@ -420,9 +424,6 @@ const SalesRepSettlements = () => {
                                     </td>
                                     <td className="px-6 py-4 font-mono text-amber-600 dark:text-amber-400">
                                         Rs. {parseFloat(s.SR_COMMISSION).toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 font-mono font-black text-emerald-600 dark:text-emerald-400 text-lg">
-                                        Rs. {parseFloat(s.HANDOVER_AMOUNT).toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4">
                                         {getStatusBadge(s.STATUS)}
@@ -579,12 +580,11 @@ const SalesRepSettlements = () => {
                                     const displayNetValue = currentTotalNetCash - totalExpiredValue - totalDisplayDiscount;
 
                                     const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
-                                    const debtCollection = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
-                                    const creditDebitChange = totalCredit - debtCollection;
-                                    const actualPaidCash = displayNetValue - creditDebitChange;
+                                    const totalPaidCash = parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0;
+                                    const actualPaidCash = displayNetValue - totalCredit;
 
                                     const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
-                                    const currentCommission = actualPaidCash * (commissionPercent / 100);
+                                    const currentCommission = totalPaidCash * (commissionPercent / 100);
                                     const currentHandover = actualPaidCash - currentCommission;
 
                                     return (
@@ -605,7 +605,7 @@ const SalesRepSettlements = () => {
                                                     <div className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">{totalUnsold}</div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
                                                 <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
                                                     <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Gross Value</div>
                                                     <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {grossCash.toFixed(2)}</div>
@@ -613,10 +613,6 @@ const SalesRepSettlements = () => {
                                                 <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
                                                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Actual Cash</div>
                                                     <div className="text-xl font-black text-slate-800 dark:text-white font-mono">Rs. {actualPaidCash.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-purple-50 dark:bg-purple-500/10 p-4 rounded-2xl border border-purple-200 dark:border-purple-500/20">
-                                                    <div className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-1">Debt Collected</div>
-                                                    <div className="text-xl font-black text-purple-700 dark:text-purple-300 font-mono">Rs. {(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</div>
                                                 </div>
                                                 <div className="bg-rose-50 dark:bg-rose-500/10 p-4 rounded-2xl border border-rose-200 dark:border-rose-500/20">
                                                     <div className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Global Discounts</div>
@@ -634,19 +630,9 @@ const SalesRepSettlements = () => {
                                                     <div className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest mb-1">Total Credit Given</div>
                                                     <div className="text-xl font-black text-red-700 dark:text-red-300 font-mono">Rs. {totalCredit.toFixed(2)}</div>
                                                 </div>
-                                                <div className="bg-cyan-50 dark:bg-cyan-500/10 p-4 rounded-2xl border border-cyan-200 dark:border-cyan-500/20">
-                                                    <div className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-widest mb-1">Credit-Debit Change</div>
-                                                    <div className={`text-xl font-black font-mono ${creditDebitChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                                        {creditDebitChange >= 0 ? '- Rs.' : '+ Rs.'} {Math.abs(creditDebitChange).toFixed(2)}
-                                                    </div>
-                                                </div>
                                                 <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
                                                     <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Commission ({commissionPercent}%)</div>
                                                     <div className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono">- Rs. {currentCommission.toFixed(2)}</div>
-                                                </div>
-                                                <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-500/20 shadow-inner">
-                                                    <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Final Handover</div>
-                                                    <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300 font-mono">Rs. {currentHandover.toFixed(2)}</div>
                                                 </div>
                                             </div>
                                         </div>
