@@ -160,11 +160,15 @@ const SalesRepSettlements = () => {
 
         const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
         const totalPaidCash = parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0;
-        const actualPaidCash = displayNetValue - totalCredit;
+
+        // Calculate penalty cash and final paid cash like the backend
+        const originalTotalNet = settlementDetails.reduce((sum, d) => sum + (parseFloat(d._originalCash) || 0), 0);
+        const penaltyCash = Math.max(0, currentTotalNetCash - originalTotalNet);
+        const finalPaidCash = totalPaidCash + penaltyCash;
 
         const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
-        const currentCommission = totalPaidCash * (commissionPercent / 100);
-        const currentHandover = actualPaidCash - currentCommission;
+        const currentCommission = finalPaidCash * (commissionPercent / 100);
+        const currentHandover = finalPaidCash - currentCommission;
 
         const html = `
             <!DOCTYPE html>
@@ -267,7 +271,7 @@ const SalesRepSettlements = () => {
                             <tr>
                                 <td><b>${totalSold}</b></td>
                                 <td>Rs. ${grossCash.toFixed(2)}</td>
-                                <td><b>Rs. ${totalPaidCash.toFixed(2)}</b></td>
+                                <td><b>Rs. ${finalPaidCash.toFixed(2)}</b></td>
                                 <td>Rs. ${totalCredit.toFixed(2)}</td>
                                 <td class="deduction">Rs. ${dayDiscount.toFixed(2)}</td>
                                 <td class="deduction">Rs. ${totalExpiredValue.toFixed(2)}</td>
@@ -281,7 +285,7 @@ const SalesRepSettlements = () => {
                         <div style="width: 300px; border: 1.5px solid #000; padding: 10px; border-radius: 6px; background-color: #fafafa;">
                             <h3 style="margin: 0 0 8px 0; border-bottom: 2px solid #000; padding-bottom: 3px; font-size: 13px; text-transform: uppercase; font-weight: bold; color: #000; text-align: left;">Final Handover Summary</h3>
                             <table style="width: 100%; border: none; margin: 0;">
-                                <tr style="background: none;"><td style="text-align: left; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Total Paid Amount:</td><td style="text-align: right; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Rs. ${totalPaidCash.toFixed(2)}</td></tr>
+                                <tr style="background: none;"><td style="text-align: left; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Total Paid Amount:</td><td style="text-align: right; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Rs. ${finalPaidCash.toFixed(2)}</td></tr>
                                 <tr style="background: none;"><td style="text-align: left; border: none; padding: 3px 0; font-size: 12px; font-weight: bold;">Commission:</td><td style="text-align: right; border: none; padding: 3px 0; font-size: 12px; font-weight: bold; color: #d32f2f;">- Rs. ${currentCommission.toFixed(2)}</td></tr>
                                 <tr style="background: none;"><td colspan="2" style="border: none; padding: 0; border-bottom: 1.5px solid #000; height: 1px;"></td></tr>
                                 <tr style="background: none;"><td style="text-align: left; border: none; padding: 5px 0 0 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">Handover Amount:</td><td style="text-align: right; border: none; padding: 5px 0 0 0; font-size: 13px; font-weight: bold; color: #2e7d32;">Rs. ${currentHandover.toFixed(2)}</td></tr>
@@ -593,11 +597,15 @@ const SalesRepSettlements = () => {
 
                                     const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
                                     const totalPaidCash = parseFloat(activeSettlement.TOTAL_PAID_CASH) || 0;
-                                    const actualPaidCash = displayNetValue - totalCredit;
+
+                                    // Calculate penalty cash and final paid cash like the backend
+                                    const originalTotalNet = settlementDetails.reduce((sum, d) => sum + (parseFloat(d._originalCash) || 0), 0);
+                                    const penaltyCash = Math.max(0, currentTotalNetCash - originalTotalNet);
+                                    const finalPaidCash = totalPaidCash + penaltyCash;
 
                                     const commissionPercent = parseFloat(activeSettlement.SR_COMMISSION_PERCENT) || 10;
-                                    const currentCommission = totalPaidCash * (commissionPercent / 100);
-                                    const currentHandover = actualPaidCash - currentCommission;
+                                    const currentCommission = finalPaidCash * (commissionPercent / 100);
+                                    const currentHandover = finalPaidCash - currentCommission;
 
                                     return (
                                         <div className="flex flex-col gap-6 pt-4">
@@ -658,7 +666,7 @@ const SalesRepSettlements = () => {
 
                                                     <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-500/20">
                                                         <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Total Paid (Invoices)</div>
-                                                        <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">Rs. {totalPaidCash.toFixed(2)}</div>
+                                                        <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">Rs. {finalPaidCash.toFixed(2)}</div>
                                                     </div>
 
                                                     {/* <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
