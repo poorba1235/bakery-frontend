@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8005/api',
+    baseURL: 'http://79.143.176.33:8005/api',
     headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
@@ -22,6 +22,6 @@ api.interceptors.request.use(
     }
 );
 
-export const REPORTS_URL = 'http://localhost:8005/api/reports';
+export const REPORTS_URL = 'http://79.143.176.33:8005/api/reports';
 
 export default api;
