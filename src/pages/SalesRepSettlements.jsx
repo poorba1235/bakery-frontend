@@ -64,9 +64,7 @@ const SalesRepSettlements = () => {
             const rawDate = header?.SETTLE_DATE;
             if (srId && rawDate) {
                 try {
-                    const d = new Date(rawDate);
-                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                    const cleanDate = d.toISOString().split('T')[0];
+                    const cleanDate = typeof rawDate === 'string' ? rawDate.substring(0, 10) : new Date(rawDate).toISOString().substring(0, 10);
                     const cashRes = await api.get(`/sales-rep-settlements/cash-hand?ref_id=${srId}&date=${cleanDate}`);
                     setAppCashAmount(parseFloat(cashRes.data.amount) || 0);
                 } catch (e) {
