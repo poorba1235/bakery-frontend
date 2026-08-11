@@ -61,10 +61,13 @@ const SalesRepSettlements = () => {
  
             // Fetch Actual Hand Cash synced from mobile app
             const srId = header?.SR_ID;
-            const dateStr = header?.SETTLE_DATE;
-            if (srId && dateStr) {
+            const rawDate = header?.SETTLE_DATE;
+            if (srId && rawDate) {
                 try {
-                    const cashRes = await api.get(`/sales-rep-settlements/cash-hand?ref_id=${srId}&date=${dateStr}`);
+                    const d = new Date(rawDate);
+                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                    const cleanDate = d.toISOString().split('T')[0];
+                    const cashRes = await api.get(`/sales-rep-settlements/cash-hand?ref_id=${srId}&date=${cleanDate}`);
                     setAppCashAmount(parseFloat(cashRes.data.amount) || 0);
                 } catch (e) {
                     console.error('Error fetching app cash hand:', e);
