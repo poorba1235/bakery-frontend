@@ -28,6 +28,7 @@ const SalesRepSettlements = () => {
     const [activeSettlement, setActiveSettlement] = useState(null);
     const [settlementDetails, setSettlementDetails] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [appCashAmount, setAppCashAmount] = useState(0);
 
     const roles = currentUser?.roles?.split(',') || [];
     const isAdmin = roles.some(role => role.toLowerCase() === 'admin');
@@ -53,8 +54,22 @@ const SalesRepSettlements = () => {
 
     const openSettlementModal = async (id) => {
         try {
+            setAppCashAmount(0);
             const res = await api.get(`/sales-rep-settlements/${id}`);
-            setActiveSettlement(res.data.header);
+            const header = res.data.header;
+            setActiveSettlement(header);
+ 
+            // Fetch Actual Hand Cash synced from mobile app
+            const srId = header?.SR_ID;
+            const dateStr = header?.SETTLE_DATE;
+            if (srId && dateStr) {
+                try {
+                    const cashRes = await api.get(`/sales-rep-settlements/cash-hand?ref_id=${srId}&date=${dateStr}`);
+                    setAppCashAmount(parseFloat(cashRes.data.amount) || 0);
+                } catch (e) {
+                    console.error('Error fetching app cash hand:', e);
+                }
+            }
 
             // Store the original SOLD_QTY to prevent the admin from decreasing it below invoice level
             const detailsWithOriginals = res.data.details.map(d => ({
@@ -62,7 +77,7 @@ const SalesRepSettlements = () => {
                 _originalSold: parseFloat(d.SOLD_QTY) || 0,
                 _originalCash: parseFloat(d.LINE_NET_CASH) || 0
             }));
-
+ 
             setSettlementDetails(detailsWithOriginals);
             setIsModalOpen(true);
         } catch (error) {
@@ -669,10 +684,10 @@ const SalesRepSettlements = () => {
                                                         <div className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">Rs. {finalPaidCash.toFixed(2)}</div>
                                                     </div>
 
-                                                    {/* <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-2xl border border-slate-200 dark:border-[#334155]">
-                                                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Actual Cash</div>
-                                                        <div className="text-xl font-black text-slate-800 dark:text-white font-mono">Rs. {actualPaidCash.toFixed(2)}</div>
-                                                    </div> */}
+                                                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
+                                                        <div className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">App Actual Cash</div>
+                                                        <div className="text-xl font-black text-blue-700 dark:text-blue-300 font-mono">Rs. {parseFloat(appCashAmount || 0).toFixed(2)}</div>
+                                                    </div>
 
                                                     <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
                                                         <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Commission ({commissionPercent}%)</div>
