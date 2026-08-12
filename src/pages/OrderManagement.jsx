@@ -1898,27 +1898,31 @@ const OrderManagement = () => {
                                     <FileText className="w-4 h-4" />
                                     <span>View Production Sheet</span>
                                 </button>
-                                {isSystemAdmin && parseInt(viewingOrder.OR_STATUS) === 0 && (
+                                {parseInt(viewingOrder.OR_STATUS) === 0 && (
                                     <>
-                                        <button
-                                            onClick={() => {
-                                                const order = viewingOrder;
-                                                setViewingOrder(null);
-                                                handleEditClick(order);
-                                            }}
-                                            className="flex items-center space-x-3 bg-amber-500 hover:bg-amber-400 text-white py-5 px-10 rounded-3xl font-black transition-all uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-amber-500/30 active:scale-95"
-                                        >
-                                            <FileText className="w-5 h-5" />
-                                            <span>Edit Content</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleApproveOrder(viewingOrder.OR_ID)}
-                                            disabled={isProcessing}
-                                            className="flex items-center space-x-3 bg-blue-600 hover:bg-blue-500 text-white py-5 px-12 rounded-3xl font-black transition-all uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-blue-500/30 active:scale-95 disabled:opacity-50"
-                                        >
-                                            {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                                            <span>Authorize Production</span>
-                                        </button>
+                                        {isSystemAdmin && (
+                                            <button
+                                                onClick={() => {
+                                                    const order = viewingOrder;
+                                                    setViewingOrder(null);
+                                                    handleEditClick(order);
+                                                }}
+                                                className="flex items-center space-x-3 bg-amber-500 hover:bg-amber-400 text-white py-5 px-10 rounded-3xl font-black transition-all uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-amber-500/30 active:scale-95"
+                                            >
+                                                <FileText className="w-5 h-5" />
+                                                <span>Edit Content</span>
+                                            </button>
+                                        )}
+                                        {(isSystemAdmin || roles_list.includes('staff')) && (
+                                            <button
+                                                onClick={() => handleApproveOrder(viewingOrder.OR_ID)}
+                                                disabled={isProcessing}
+                                                className="flex items-center space-x-3 bg-blue-600 hover:bg-blue-500 text-white py-5 px-12 rounded-3xl font-black transition-all uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-blue-500/30 active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                                                <span>Authorize Production</span>
+                                            </button>
+                                        )}
                                     </>
                                 )}
                             </div>
