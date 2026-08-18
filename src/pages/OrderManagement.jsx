@@ -1069,6 +1069,9 @@ const OrderManagement = () => {
                                                                                     }}
                                                                                     className={`w-28 bg-white dark:bg-[#1e293b] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all ${!isChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                                 />
+                                                                                <span className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">
+                                                                                    Stock: {Math.round(Number(p.stock_balance || 0))}
+                                                                                </span>
                                                                                 {isChecked && parseFloat(row.OD_QTY || 0) > parseFloat(p.stock_balance || 0) && (
                                                                                     <span className="text-[10px] font-black text-rose-500 mt-1 animate-pulse">
                                                                                         ⚠️ Exceeds Stock
