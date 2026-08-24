@@ -45,6 +45,24 @@ const POSPage = () => {
     const [customerName, setCustomerName] = useState('Walking Customer');
     const [amountTendered, setAmountTendered] = useState('');
 
+    // Customer & Credit System States
+    const [customers, setCustomers] = useState([]);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [customerSearchQuery, setCustomerSearchQuery] = useState('Walking Customer');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const [isTenderedManuallyEdited, setIsTenderedManuallyEdited] = useState(false);
+
+    // Credit Ledger Tab States
+    const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState(null);
+    const [ledgerCustomerSearchQuery, setLedgerCustomerSearchQuery] = useState('');
+    const [showLedgerCustomerDropdown, setShowLedgerCustomerDropdown] = useState(false);
+    const [creditLog, setCreditLog] = useState([]);
+    const [loadingLedger, setLoadingLedger] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentRemarks, setPaymentRemarks] = useState('');
+    const [paymentMode, setPaymentMode] = useState('Cash');
+    const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
     const [invoiceNo, setInvoiceNo] = useState('');
     const [loadingCheckout, setLoadingCheckout] = useState(false);
     const [loadingProducts, setLoadingProducts] = useState(false);
@@ -91,6 +109,70 @@ const POSPage = () => {
         }, 400);
     }, []);
 
+    const fetchCustomers = async () => {
+        try {
+            const res = await api.get('/pos/customers');
+            setCustomers(res.data);
+            
+            // Sync selected customer object if it was already selected to get updated credit balance
+            if (selectedCustomer) {
+                const updated = res.data.find(c => c.PC_ID === selectedCustomer.PC_ID);
+                if (updated) setSelectedCustomer(updated);
+            }
+        } catch (err) {
+            console.error('Failed to fetch customers:', err);
+        }
+    };
+
+    const fetchCreditLog = async (customerId) => {
+        setLoadingLedger(true);
+        try {
+            const res = await api.get(`/pos/credit-log/${customerId}`);
+            setCreditLog(res.data);
+        } catch (error) {
+            showNotification('Failed to fetch credit ledger log', 'error');
+        } finally {
+            setLoadingLedger(false);
+        }
+    };
+
+    const handleRecordPayment = async (e) => {
+        e.preventDefault();
+        if (!selectedLedgerCustomer) return;
+        const parsedAmt = parseFloat(paymentAmount);
+        if (isNaN(parsedAmt) || parsedAmt <= 0) {
+            showNotification('Please enter a valid positive payment amount', 'error');
+            return;
+        }
+
+        setIsSubmittingPayment(true);
+        try {
+            const payload = {
+                customerId: selectedLedgerCustomer.PC_ID,
+                amount: parsedAmt,
+                paymentMethod: paymentMode,
+                remarks: paymentRemarks
+            };
+            await api.post('/pos/credit-payment', payload);
+            showNotification('Credit payment recorded successfully!', 'success');
+            setPaymentAmount('');
+            setPaymentRemarks('');
+            
+            // Refresh customer lists & ledger details
+            const res = await api.get('/pos/customers');
+            setCustomers(res.data);
+            const updatedLedgerCust = res.data.find(c => c.PC_ID === selectedLedgerCustomer.PC_ID);
+            if (updatedLedgerCust) {
+                setSelectedLedgerCustomer(updatedLedgerCust);
+            }
+            await fetchCreditLog(selectedLedgerCustomer.PC_ID);
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Payment failed', 'error');
+        } finally {
+            setIsSubmittingPayment(false);
+        }
+    };
+
     const fetchInitialData = async () => {
         setLoadingProducts(true);
         try {
@@ -106,6 +188,9 @@ const POSPage = () => {
             // 3. Fetch Categories
             const catRes = await api.get('/product/categories');
             setCategories(catRes.data);
+
+            // 4. Fetch Customers
+            await fetchCustomers();
         } catch (error) {
             showNotification(error.response?.data?.message || 'Failed to load POS details', 'error');
         } finally {
@@ -226,6 +311,9 @@ const POSPage = () => {
         setDiscount(0);
         setAmountTendered('');
         setCustomerName('Walking Customer');
+        setSelectedCustomer(null);
+        setCustomerSearchQuery('Walking Customer');
+        setIsTenderedManuallyEdited(false);
     };
 
     // Quantity Input Change handler for direct typing
@@ -260,11 +348,14 @@ const POSPage = () => {
     // Quick Cash tender helper
     const handleQuickCash = (amount) => {
         const net = getNetTotal();
+        const prevBal = selectedCustomer ? parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0) : 0;
+        const totalToPay = net + prevBal;
         if (amount === 'exact') {
-            setAmountTendered(net.toFixed(2));
+            setAmountTendered(totalToPay.toFixed(2));
         } else {
             setAmountTendered(amount.toString());
         }
+        setIsTenderedManuallyEdited(true);
     };
 
     // Search Keydown Handler (Enter to add exact match or first item)
@@ -319,7 +410,12 @@ const POSPage = () => {
     const getChange = () => {
         const tendered = parseFloat(amountTendered) || 0;
         const net = getNetTotal();
-        return tendered - net;
+        const prevBal = selectedCustomer ? parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0) : 0;
+        
+        // If they have a previous balance, any cash tendered above today's bill net total goes to settle the previous balance first!
+        const excess = tendered - net;
+        if (excess <= 0) return excess;
+        return Math.max(0, excess - prevBal);
     };
 
     // Trigger receipt modal display on screen
@@ -459,21 +555,40 @@ const POSPage = () => {
             doc.text(`-Rs. ${targetSale.discount.toFixed(2)}`, rightPos, y, { align: 'right' });
         }
 
+        if (targetSale.previousBalance !== undefined && targetSale.previousBalance > 0) {
+            y += 4.5;
+            doc.text(`OLD BALANCE:`, 5, y);
+            doc.text(`Rs. ${targetSale.previousBalance.toFixed(2)}`, rightPos, y, { align: 'right' });
+        }
+
         y += 5;
         doc.setFontSize(is80mm ? 14 : 12.5);
         doc.setFont('Sinhala', 'bold');
         doc.text(`NET TOTAL:`, 5, y);
-        doc.text(`Rs. ${targetSale.netAmount.toFixed(2)}`, rightPos, y, { align: 'right' });
+        doc.text(`Rs. ${((targetSale.previousBalance || 0) + targetSale.netAmount).toFixed(2)}`, rightPos, y, { align: 'right' });
 
         y += 3.5;
         doc.setFont('Sinhala', 'normal');
-        doc.text(`PAID ${(targetSale.paymentMethod || 'CASH').toUpperCase()}:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, rightPos, y, { align: 'right' });
 
-        y += 4;
-        doc.setFont('Sinhala', 'bold');
-        doc.text(`CHANGE:`, 5, y);
-        doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, rightPos, y, { align: 'right' });
+        if (targetSale.paymentMethod === 'Credit' || (targetSale.previousBalance !== undefined && targetSale.previousBalance > 0)) {
+            doc.text(`AMOUNT PAID:`, 5, y);
+            doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, rightPos, y, { align: 'right' });
+
+            y += 4.5;
+            doc.setFont('Sinhala', 'bold');
+            doc.text(`NEW BALANCE:`, 5, y);
+            doc.text(`Rs. ${(targetSale.newBalance || 0).toFixed(2)}`, rightPos, y, { align: 'right' });
+        } else {
+            doc.text(`PAID ${(targetSale.paymentMethod || 'CASH').toUpperCase()}:`, 5, y);
+            doc.text(`Rs. ${targetSale.amountTendered.toFixed(2)}`, rightPos, y, { align: 'right' });
+
+            y += 4;
+            doc.setFont('Sinhala', 'bold');
+            doc.text(`CHANGE:`, 5, y);
+            doc.text(`Rs. ${targetSale.amountChange.toFixed(2)}`, rightPos, y, { align: 'right' });
+        }
+
+
 
         y += 3;
         doc.setFont('Sinhala', 'normal');
@@ -537,6 +652,24 @@ const POSPage = () => {
             return;
         }
 
+        if (paymentMethod === 'Credit') {
+            if (!selectedCustomer) {
+                showNotification('A registered customer must be selected for Credit transactions!', 'error');
+                return;
+            }
+            const paidUpfront = parseFloat(amountTendered) || 0;
+            if (paidUpfront < 0 || paidUpfront > netTotal) {
+                showNotification('Paid upfront amount must be between 0 and net total!', 'error');
+                return;
+            }
+            const dueAmount = netTotal - paidUpfront;
+            const remainingLimit = (parseFloat(selectedCustomer.PC_CREDIT_LIMIT || 0)) - (parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0));
+            if (dueAmount > remainingLimit) {
+                showNotification(`Credit limit exceeded! Due amount (Rs. ${dueAmount.toFixed(2)}) is greater than remaining credit limit (Rs. ${remainingLimit.toFixed(2)})`, 'error');
+                return;
+            }
+        }
+
         setLoadingCheckout(true);
         try {
             const saleData = {
@@ -548,7 +681,12 @@ const POSPage = () => {
                 })),
                 discountPercentage: parseFloat(discount) || 0,
                 paymentMethod,
-                customerName
+                customerName: selectedCustomer ? selectedCustomer.PC_NAME : customerName,
+                PC_ID: selectedCustomer ? selectedCustomer.PC_ID : null,
+                customerId: selectedCustomer ? selectedCustomer.PC_ID : null,
+                paidAmount: paymentMethod === 'Credit'
+                    ? (parseFloat(amountTendered) || 0)
+                    : (paymentMethod === 'Cash' ? (parseFloat(amountTendered) || netTotal) : netTotal)
             };
             const response = await api.post('/pos/sales', saleData);
 
@@ -558,14 +696,16 @@ const POSPage = () => {
                 invoiceNo: response.data.invoiceNo,
                 date: new Date(),
                 cashier: user?.username || 'Admin',
-                customerName,
+                customerName: selectedCustomer ? selectedCustomer.PC_NAME : customerName,
                 paymentMethod,
                 subtotal: getSubtotal(),
                 discount: discountAmount,
                 netAmount: netTotal,
-                amountTendered: paymentMethod === 'Cash' ? tendered : netTotal,
+                amountTendered: paymentMethod === 'Cash' ? tendered : (paymentMethod === 'Credit' ? (parseFloat(amountTendered) || 0) : netTotal),
                 amountChange: paymentMethod === 'Cash' ? Math.max(0, getChange()) : 0,
-                items: [...cart]
+                items: [...cart],
+                previousBalance: response.data.previousBalance || 0,
+                newBalance: response.data.newBalance || 0
             };
 
             clearCart();
@@ -626,6 +766,19 @@ const POSPage = () => {
             showNotification('Failed to retrieve receipt details', 'error');
         }
     };
+
+    // Auto sync cash tendered amount to today amount + credit balance unless manually customized
+    useEffect(() => {
+        if (paymentMethod === 'Cash' && !isTenderedManuallyEdited) {
+            const net = getNetTotal();
+            const prevBal = selectedCustomer ? parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0) : 0;
+            setAmountTendered((net + prevBal).toFixed(2));
+        } else if (paymentMethod === 'Credit' && !isTenderedManuallyEdited) {
+            setAmountTendered('0.00');
+        } else if (paymentMethod !== 'Cash' && paymentMethod !== 'Credit' && !isTenderedManuallyEdited) {
+            setAmountTendered('');
+        }
+    }, [cart, discount, selectedCustomer, paymentMethod, isTenderedManuallyEdited]);
 
     // Keyboard Shortcuts Listener
     useEffect(() => {
@@ -839,6 +992,19 @@ const POSPage = () => {
                             <History className="w-3.5 h-3.5" />
                             Recent Receipts
                         </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab('credit');
+                                fetchCustomers();
+                            }}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'credit'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                }`}
+                        >
+                            <CreditCard className="w-3.5 h-3.5" />
+                            Credit Ledger & Payments
+                        </button>
                     </div>
 
                     <div className="px-4 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 rounded-xl flex items-center gap-2">
@@ -853,9 +1019,240 @@ const POSPage = () => {
             </div>
 
             {/* Grid Layout */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 no-print">
+            {activeTab === 'credit' ? (
+                /* Full width Credit Ledger & Payments view */
+                <div className="no-print">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-white dark:bg-[#1e293b] p-6 rounded-3xl border border-slate-200 dark:border-[#334155] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        
+                        {/* Left Panel: Customer Summary & Payments */}
+                        <div className="md:col-span-4 border-r border-slate-200 dark:border-[#334155] pr-6 flex flex-col gap-4">
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                <CreditCard className="w-5 h-5 text-rose-500" />
+                                Credit Payments & Settle
+                            </h3>
 
-                {/* Left Column: Product Picker OR Sales History */}
+                            {/* Select Customer for Ledger */}
+                            <div className="flex flex-col gap-1 relative">
+                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Select Customer</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={selectedLedgerCustomer ? selectedLedgerCustomer.PC_NAME : ledgerCustomerSearchQuery}
+                                        onChange={(e) => {
+                                            setLedgerCustomerSearchQuery(e.target.value);
+                                            if (selectedLedgerCustomer) {
+                                                setSelectedLedgerCustomer(null);
+                                                setCreditLog([]);
+                                            }
+                                            setShowLedgerCustomerDropdown(true);
+                                        }}
+                                        onFocus={() => setShowLedgerCustomerDropdown(true)}
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-slate-800 dark:text-white"
+                                        placeholder="Search customer name..."
+                                    />
+                                    {selectedLedgerCustomer && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedLedgerCustomer(null);
+                                                setLedgerCustomerSearchQuery('');
+                                                setCreditLog([]);
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-black"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                {showLedgerCustomerDropdown && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowLedgerCustomerDropdown(false)} />
+                                        <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-lg shadow-lg z-20 custom-scrollbar">
+                                            {customers
+                                                .filter(c => (c.PC_NAME || '').toLowerCase().includes(ledgerCustomerSearchQuery.toLowerCase()))
+                                                .map(c => (
+                                                    <div
+                                                        key={c.PC_ID}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            setSelectedLedgerCustomer(c);
+                                                            setShowLedgerCustomerDropdown(false);
+                                                            fetchCreditLog(c.PC_ID);
+                                                        }}
+                                                        className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer text-slate-800 dark:text-white flex justify-between"
+                                                    >
+                                                        <span>{c.PC_NAME}</span>
+                                                        <span className="text-[10px] text-rose-500 font-bold">LKR {parseFloat(c.PC_CREDIT_BALANCE || 0).toFixed(0)}</span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {selectedLedgerCustomer ? (
+                                <>
+                                    {/* Credit Profile Summary */}
+                                    <div className="bg-slate-50 dark:bg-[#0f172a]/40 border border-slate-200 dark:border-[#334155] p-4 rounded-2xl flex flex-col gap-2.5">
+                                        <div className="flex justify-between text-xs font-semibold">
+                                            <span className="text-slate-500">Credit Limit:</span>
+                                            <span className="text-slate-800 dark:text-slate-200 font-black">Rs. {parseFloat(selectedLedgerCustomer.PC_CREDIT_LIMIT || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-semibold">
+                                            <span className="text-slate-500">Current Balance:</span>
+                                            <span className="text-rose-500 font-black">Rs. {parseFloat(selectedLedgerCustomer.PC_CREDIT_BALANCE || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs font-bold border-t border-slate-200 dark:border-slate-800 pt-2">
+                                            <span className="text-slate-500">Remaining Limit:</span>
+                                            <span className="text-emerald-500 font-black">Rs. {Math.max(0, (parseFloat(selectedLedgerCustomer.PC_CREDIT_LIMIT || 0)) - (parseFloat(selectedLedgerCustomer.PC_CREDIT_BALANCE || 0))).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Record Payment Form */}
+                                    <form onSubmit={handleRecordPayment} className="flex flex-col gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Record Credit Payment</h4>
+                                        
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400">Payment Amount (LKR)</label>
+                                            <input
+                                                type="number"
+                                                min="0.01"
+                                                step="0.01"
+                                                required
+                                                value={paymentAmount}
+                                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-500 focus:outline-none text-slate-800 dark:text-white"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400">Payment Mode</label>
+                                            <select
+                                                value={paymentMode}
+                                                onChange={(e) => setPaymentMode(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-semibold focus:ring-1 focus:ring-blue-500 focus:outline-none text-slate-800 dark:text-white"
+                                            >
+                                                <option value="Cash">Cash</option>
+                                                <option value="Card">Card</option>
+                                                <option value="Online Transfer">Online Transfer</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400">Remarks / Reference</label>
+                                            <input
+                                                type="text"
+                                                value={paymentRemarks}
+                                                onChange={(e) => setPaymentRemarks(e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none text-slate-800 dark:text-white"
+                                                placeholder="e.g. Bank slip reference, check number"
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmittingPayment || parseFloat(paymentAmount || 0) <= 0}
+                                            className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-md transition-all ${isSubmittingPayment || parseFloat(paymentAmount || 0) <= 0
+                                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/10'
+                                                }`}
+                                        >
+                                            {isSubmittingPayment ? 'Recording...' : 'Receive Credit Payment'}
+                                        </button>
+                                    </form>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-[#0f172a]/20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center">
+                                    <CreditCard className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2 animate-bounce" />
+                                    <p className="text-xs text-slate-400 font-semibold">Select a customer above to view credit profiles and settle dues.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Panel: Transaction Ledger History */}
+                        <div className="md:col-span-8 flex flex-col gap-4 pl-0 md:pl-2">
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                <History className="w-5 h-5 text-blue-600" />
+                                Transaction Ledger
+                            </h3>
+
+                            {selectedLedgerCustomer ? (
+                                loadingLedger ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center py-20">
+                                        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                        <span className="text-xs text-slate-400 font-semibold">Loading transaction logs...</span>
+                                    </div>
+                                ) : creditLog.length === 0 ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 font-semibold text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                                        <Receipt className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-2" />
+                                        No credit ledger entries found for {selectedLedgerCustomer.C_NAME}.
+                                    </div>
+                                ) : (
+                                    <div className="overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar">
+                                        <table className="w-full text-left text-xs border-collapse">
+                                            <thead>
+                                                <tr className="border-b border-slate-200 dark:border-[#334155] text-slate-400 font-black uppercase tracking-wider pb-3">
+                                                    <th className="pb-3 pt-1">Date</th>
+                                                    <th className="pb-3 pt-1">Type</th>
+                                                    <th className="pb-3 pt-1">Ref / Invoice</th>
+                                                    <th className="pb-3 pt-1 text-right">Debit (+Sale)</th>
+                                                    <th className="pb-3 pt-1 text-right">Credit (-Paid)</th>
+                                                    <th className="pb-3 pt-1 text-right">Balance</th>
+                                                    <th className="pb-3 pt-1 pl-4">Remarks & Cashier</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-[#334155] font-semibold text-slate-700 dark:text-slate-300">
+                                                {creditLog.map((log) => (
+                                                    <tr key={log.PCL_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/30 transition-colors">
+                                                        <td className="py-3 text-slate-500">
+                                                            {new Date(log.PCL_DATE).toLocaleDateString()} {new Date(log.PCL_DATE).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </td>
+                                                        <td className="py-3">
+                                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${log.PCL_TYPE === 'Purchase'
+                                                                ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                                                                : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+                                                                }`}>
+                                                                {log.PCL_TYPE}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 text-blue-600 dark:text-blue-400 font-bold">
+                                                            {log.PSH_INVOICE_NO || '---'}
+                                                        </td>
+                                                        <td className="py-3 text-right font-black text-rose-500">
+                                                            {parseFloat(log.PCL_DEBIT) > 0 ? `Rs. ${parseFloat(log.PCL_DEBIT).toFixed(2)}` : '---'}
+                                                        </td>
+                                                        <td className="py-3 text-right font-black text-emerald-500">
+                                                            {parseFloat(log.PCL_CREDIT) > 0 ? `Rs. ${parseFloat(log.PCL_CREDIT).toFixed(2)}` : '---'}
+                                                        </td>
+                                                        <td className="py-3 text-right font-black text-slate-900 dark:text-white">
+                                                            Rs. {parseFloat(log.PCL_BALANCE).toFixed(2)}
+                                                        </td>
+                                                        <td className="py-3 pl-4 text-slate-500 text-[11px] leading-tight font-medium">
+                                                            <div>{log.PCL_REMARKS}</div>
+                                                            <div className="text-[9px] font-bold uppercase text-slate-400 mt-0.5">By: {log.PCL_ENTERED_BY}</div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center p-20 bg-slate-50 dark:bg-[#0f172a]/20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-center">
+                                    <History className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3 animate-pulse" />
+                                    <h4 className="font-extrabold text-sm text-slate-500 dark:text-slate-400">Ledger Statement Sheet</h4>
+                                    <p className="text-xs text-slate-400 max-w-sm mt-1 mx-auto">Select a customer on the left to see their ledger log statement of accounts, bills, and payment entries.</p>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 no-print">
+
+                    {/* Left Column: Product Picker OR Sales History */}
                 <div className="xl:col-span-7 flex flex-col gap-4">
                     {activeTab === 'register' ? (
                         <>
@@ -1158,16 +1555,84 @@ const POSPage = () => {
                     <div className="p-3 border-t border-slate-100 dark:border-[#334155] bg-slate-50 dark:bg-slate-900/40 flex flex-col gap-2">
                         {/* Customer & Discount Grid */}
                         <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col gap-0.5">
-                                <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Customer Name</label>
-                                <input
-                                    type="text"
-                                    value={customerName}
-                                    onChange={(e) => setCustomerName(e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold"
-                                    placeholder="Walking Customer"
-                                />
+                            <div className="flex flex-col gap-0.5 relative">
+                                <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Customer</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={selectedCustomer ? selectedCustomer.PC_NAME : customerSearchQuery}
+                                        onChange={(e) => {
+                                            setCustomerSearchQuery(e.target.value);
+                                            if (selectedCustomer) {
+                                                setSelectedCustomer(null);
+                                                setCustomerName('Walking Customer');
+                                            }
+                                            setShowCustomerDropdown(true);
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.select();
+                                            setShowCustomerDropdown(true);
+                                        }}
+                                        className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-slate-800 dark:text-white"
+                                        placeholder="Search/Select Customer"
+                                    />
+                                    {customerSearchQuery !== 'Walking Customer' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedCustomer(null);
+                                                setCustomerSearchQuery('Walking Customer');
+                                                setCustomerName('Walking Customer');
+                                                setIsTenderedManuallyEdited(false);
+                                            }}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-black"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                {showCustomerDropdown && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowCustomerDropdown(false)} />
+                                        <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-lg shadow-lg z-[70] custom-scrollbar">
+                                            <div
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    setSelectedCustomer(null);
+                                                    setCustomerName('Walking Customer');
+                                                    setCustomerSearchQuery('Walking Customer');
+                                                    setShowCustomerDropdown(false);
+                                                    setIsTenderedManuallyEdited(false);
+                                                }}
+                                                className="px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer text-slate-500"
+                                            >
+                                                Walking Customer (Default)
+                                            </div>
+                                            {customers
+                                                .filter(c => {
+                                                    const query = (customerSearchQuery === 'Walking Customer') ? '' : customerSearchQuery;
+                                                    return (c.PC_NAME || '').toLowerCase().includes(query.toLowerCase());
+                                                })
+                                                .map(c => (
+                                                    <div
+                                                        key={c.PC_ID}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            setSelectedCustomer(c);
+                                                            setCustomerName(c.PC_NAME);
+                                                            setCustomerSearchQuery(c.PC_NAME);
+                                                            setShowCustomerDropdown(false);
+                                                            setIsTenderedManuallyEdited(false);
+                                                        }}
+                                                        className="px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer text-slate-800 dark:text-white flex justify-between"
+                                                    >
+                                                        <span>{c.PC_NAME}</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold">Bal: {parseFloat(c.PC_CREDIT_BALANCE || 0).toFixed(0)}</span>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <div className="flex flex-col gap-0.5">
                                 <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Discount (%)</label>
@@ -1178,11 +1643,28 @@ const POSPage = () => {
                                     value={discount || ''}
                                     onChange={(e) => setDiscount(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
                                     onFocus={(e) => e.target.select()}
-                                    className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-right"
+                                    className="w-full px-2 py-1 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-lg text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all font-semibold text-right text-slate-800 dark:text-white"
                                     placeholder="0%"
                                 />
                             </div>
                         </div>
+
+                        {selectedCustomer && (
+                            <div className="p-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl flex flex-col gap-1.5 text-[10px]">
+                                <div className="flex justify-between font-semibold">
+                                    <span className="text-slate-500">Credit Limit:</span>
+                                    <span className="text-slate-800 dark:text-slate-200 font-bold">Rs. {parseFloat(selectedCustomer.PC_CREDIT_LIMIT || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between font-semibold">
+                                    <span className="text-slate-500">Current Balance:</span>
+                                    <span className="text-rose-500 font-bold">Rs. {parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between font-bold border-t border-blue-100/50 dark:border-blue-900/20 pt-1">
+                                    <span className="text-slate-500">Remaining Limit:</span>
+                                    <span className="text-emerald-500">Rs. {Math.max(0, (parseFloat(selectedCustomer.PC_CREDIT_LIMIT || 0)) - (parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0))).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Payment Selector */}
                         <div className="flex flex-col gap-0.5">
@@ -1196,7 +1678,10 @@ const POSPage = () => {
                                 ].map((item) => (
                                     <button
                                         key={item.mode}
-                                        onClick={() => setPaymentMethod(item.mode)}
+                                        onClick={() => {
+                                            setPaymentMethod(item.mode);
+                                            setIsTenderedManuallyEdited(false);
+                                        }}
                                         className={`flex items-center justify-center gap-1 py-1 border rounded-lg font-bold transition-all text-xs ${paymentMethod === item.mode
                                             ? `${item.color} ring-1 ring-blue-500 shadow-sm`
                                             : 'border-slate-200 dark:border-[#334155] bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e293b]'
@@ -1219,7 +1704,10 @@ const POSPage = () => {
                                             type="number"
                                             min="0"
                                             value={amountTendered}
-                                            onChange={(e) => setAmountTendered(e.target.value)}
+                                            onChange={(e) => {
+                                                setAmountTendered(e.target.value);
+                                                setIsTenderedManuallyEdited(true);
+                                            }}
                                             onFocus={(e) => e.target.select()}
                                             className="w-full px-2 py-0.5 bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-md text-xs font-bold text-right text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                             placeholder="0.00"
@@ -1261,6 +1749,47 @@ const POSPage = () => {
                                             </button>
                                         );
                                     })}
+                                </div>
+                                {selectedCustomer && parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0) > 0 && (
+                                    <div className="flex justify-between items-center text-[8px] font-bold text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1">
+                                        <span>Debt Settle Suggestion:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAmountTendered((getNetTotal() + parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0)).toFixed(2))}
+                                            className="px-1.5 py-0.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded transition-colors text-[8px] font-extrabold"
+                                        >
+                                            Pay All (Rs. {(getNetTotal() + parseFloat(selectedCustomer.PC_CREDIT_BALANCE || 0)).toFixed(2)})
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {paymentMethod === 'Credit' && (
+                            <div className="flex flex-col gap-1.5 p-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded-xl shadow-sm">
+                                <div className="grid grid-cols-2 gap-2 items-center">
+                                    <div className="flex flex-col gap-0.5">
+                                        <label className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Paid Upfront (Rs)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={getNetTotal()}
+                                            value={amountTendered}
+                                            onChange={(e) => {
+                                                setAmountTendered(e.target.value);
+                                                setIsTenderedManuallyEdited(true);
+                                            }}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full px-2 py-0.5 bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-md text-xs font-bold text-right text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div className="text-right flex flex-col gap-0.5">
+                                        <span className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Credit Due</span>
+                                        <span className="text-xs font-black text-rose-500 pr-1">
+                                            Rs. {Math.max(0, getNetTotal() - (parseFloat(amountTendered) || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1380,6 +1909,7 @@ const POSPage = () => {
                     </div>
                 </div>
             </div>
+        )}
 
             {/* Direct Printable Thermal Receipt (Completely hidden on screen, formatted to paperWidth - 80mm default) */}
             {completedSale && (
@@ -1458,9 +1988,15 @@ const POSPage = () => {
                                 <span>- Rs. {completedSale.discount.toFixed(2)}</span>
                             </div>
                         )}
+                        {completedSale.previousBalance !== undefined && completedSale.previousBalance > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '14.5px' : '13px', fontWeight: '500' }}>
+                                <span>OLD BALANCE:</span>
+                                <span>Rs. {completedSale.previousBalance.toFixed(2)}</span>
+                            </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: paperWidth === '80mm' ? '17px' : '15px', fontWeight: 'bold', borderTop: '1px dashed black', paddingTop: '4px', marginTop: '3px' }}>
                             <span>NET TOTAL:</span>
-                            <span>Rs. {completedSale.netAmount.toFixed(2)}</span>
+                            <span>Rs. {((completedSale.previousBalance || 0) + completedSale.netAmount).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -1469,7 +2005,7 @@ const POSPage = () => {
                     {/* Reconcile payment details */}
                     <div style={{ fontSize: paperWidth === '80mm' ? '11px' : '10px', display: 'flex', flexDirection: 'column', gap: '2px', fontWeight: 'normal', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
 
-                        {completedSale.paymentMethod === 'Cash' && completedSale.amountTendered > 0 && (
+                        {completedSale.paymentMethod !== 'Credit' && !(completedSale.previousBalance !== undefined && completedSale.previousBalance > 0) && completedSale.amountTendered > 0 && (
                             <>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span>CASH TENDERED:</span>
@@ -1478,6 +2014,19 @@ const POSPage = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span>CHANGE RETURNED:</span>
                                     <span>Rs. {completedSale.amountChange.toFixed(2)}</span>
+                                </div>
+                            </>
+                        )}
+
+                        {(completedSale.paymentMethod === 'Credit' || (completedSale.previousBalance !== undefined && completedSale.previousBalance > 0)) && (
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>AMOUNT PAID:</span>
+                                    <span>Rs. {completedSale.amountTendered.toFixed(2)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                    <span>NEW BALANCE:</span>
+                                    <span>Rs. {(completedSale.newBalance || 0).toFixed(2)}</span>
                                 </div>
                             </>
                         )}

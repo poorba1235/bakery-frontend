@@ -79,7 +79,7 @@ const CustomerManagement = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.C_NAME || !formData.SR_ID) {
             showNotification('Name and Sales Rep are required', 'error');
             return;
@@ -135,7 +135,7 @@ const CustomerManagement = () => {
         let filtered = customers;
         if (searchTerm) {
             const search = searchTerm.toLowerCase();
-            filtered = customers.filter(item => 
+            filtered = customers.filter(item =>
                 (item.C_NAME || '').toLowerCase().includes(search) ||
                 (item.C_MOBILE || '').toLowerCase().includes(search) ||
                 (item.SR_NAME || '').toLowerCase().includes(search)
@@ -249,8 +249,8 @@ const CustomerManagement = () => {
                                             <button onClick={() => { setEditingCustomer(item); setFormData(item); setIsModalOpen(true); }} className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all shadow-sm">
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            <button 
-                                                onClick={() => handleDeleteCustomer(item.C_ID)} 
+                                            <button
+                                                onClick={() => handleDeleteCustomer(item.C_ID)}
                                                 disabled={deletingId === item.C_ID}
                                                 className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all shadow-sm disabled:opacity-50"
                                             >
@@ -305,11 +305,11 @@ const CustomerManagement = () => {
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customer / Shop Name *</label>
-                                    <input type="text" required value={formData.C_NAME} onChange={e => setFormData({...formData, C_NAME: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input type="text" required value={formData.C_NAME} onChange={e => setFormData({ ...formData, C_NAME: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Assigned Sales Rep *</label>
-                                    <select required value={formData.SR_ID} onChange={e => setFormData({...formData, SR_ID: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                                    <select required value={formData.SR_ID} onChange={e => setFormData({ ...formData, SR_ID: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="">Select Sales Rep...</option>
                                         {salesReps.map(sr => (
                                             <option key={sr.SR_ID} value={sr.SR_ID}>{sr.SR_NAME} ({sr.SR_CODE})</option>
@@ -318,15 +318,15 @@ const CustomerManagement = () => {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Mobile</label>
-                                    <input type="text" value={formData.C_MOBILE} onChange={e => setFormData({...formData, C_MOBILE: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <input type="text" value={formData.C_MOBILE} onChange={e => setFormData({ ...formData, C_MOBILE: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Address</label>
-                                    <textarea rows={2} value={formData.C_ADDRESS} onChange={e => setFormData({...formData, C_ADDRESS: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" />
+                                    <textarea rows={2} value={formData.C_ADDRESS} onChange={e => setFormData({ ...formData, C_ADDRESS: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Details (Optional)</label>
-                                    <textarea rows={2} value={formData.C_DETAILS} onChange={e => setFormData({...formData, C_DETAILS: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" />
+                                    <textarea rows={2} value={formData.C_DETAILS} onChange={e => setFormData({ ...formData, C_DETAILS: e.target.value })} className="w-full bg-slate-50 dark:bg-[#0f172a] border border-slate-300 dark:border-[#334155] rounded-xl py-2 px-3 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 custom-scrollbar" />
                                 </div>
                                 <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-[#334155]">
                                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">Cancel</button>

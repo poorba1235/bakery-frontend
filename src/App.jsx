@@ -24,6 +24,7 @@ import RawMaterialCategory from './pages/RawMaterialCategory';
 import RawMaterialItem from './pages/RawMaterialItem';
 import WarehouseLocation from './pages/WarehouseLocation';
 import CustomerManagement from './pages/CustomerManagement';
+import POSCustomerManagement from './pages/POSCustomerManagement';
 import SalesRepOrders from './pages/SalesRepOrders';
 import SalesRepSettlements from './pages/SalesRepSettlements';
 import SupplierManagement from './pages/SupplierManagement';
@@ -74,6 +75,14 @@ function App() {
                 element={
                   <ProtectedLayout>
                     <CustomerManagement />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/maintain/pos-customers"
+                element={
+                  <ProtectedLayout>
+                    <POSCustomerManagement />
                   </ProtectedLayout>
                 }
               />
