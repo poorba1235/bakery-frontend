@@ -1477,14 +1477,14 @@ const OrderManagement = () => {
                                     >
                                         Cancel & Adjust
                                     </button>
-                                    {/* <button
+                                    <button
                                         type="button"
                                         onClick={() => handleSaveOrder(null, true)}
                                         className="px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl shadow-amber-500/30 active:scale-95 transition-all flex items-center gap-2 border border-amber-600"
                                     >
                                         <CheckCircle size={14} />
                                         Proceed & Save Anyway
-                                    </button> */}
+                                    </button>
                                 </div>
                             </motion.div>
                         </div>
@@ -2198,14 +2198,7 @@ const OrderManagement = () => {
                                     onClick={() => setShortageModalOpen(false)}
                                     className="px-8 py-4 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-black rounded-2xl uppercase text-[10px] tracking-widest transition-all border border-slate-300/50 dark:border-slate-700"
                                 >
-                                    Cancel & Adjust
-                                </button>
-                                <button
-                                    onClick={() => handleSaveOrder(null, true)}
-                                    className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl shadow-blue-500/30 active:scale-95 transition-all flex items-center gap-2"
-                                >
-                                    <CheckCircle size={14} />
-                                    Proceed & Save Anyway
+                                    Close
                                 </button>
                             </div>
                         </motion.div>
