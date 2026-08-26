@@ -203,6 +203,19 @@ const Reports = () => {
                     </button>
                 </div>
 
+                <div className="bg-white dark:bg-[#1e293b] p-8 rounded-3xl border border-slate-300 dark:border-[#334155] hover:border-violet-500/30 transition-all group">
+                    <div className="w-14 h-14 bg-violet-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <TrendingUp className="w-7 h-7 text-violet-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Ref-Wise Credit Difference Report</h2>
+                    <p className="text-slate-600 dark:text-[#94a3b8] mb-6">Yesterday's credit, today received payments, and the calculated credit difference/gap to the current outstanding balance.</p>
+                    <button 
+                        onClick={() => setShowDateModal('ref-credit-difference')}
+                        className="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-violet-500/20">
+                        Generate PDF Report
+                    </button>
+                </div>
+
             </div>
 
 
@@ -303,7 +316,7 @@ const Reports = () => {
                                 </div>
                             )}
 
-                            {(showDateModal === 'sales-rep-invoices' || showDateModal === 'ref-credit-today') && (
+                            {(showDateModal === 'sales-rep-invoices' || showDateModal === 'ref-credit-today' || showDateModal === 'ref-credit-difference') && (
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Sales Rep</label>
                                     <select
@@ -401,7 +414,7 @@ const Reports = () => {
                                         if (dateRange.shopId) params.append('shopId', dateRange.shopId);
                                         if (dateRange.srId) params.append('srId', dateRange.srId);
                                     }
-                                    if (showDateModal === 'sales-rep-invoices' || showDateModal === 'ref-credit-today') {
+                                    if (showDateModal === 'sales-rep-invoices' || showDateModal === 'ref-credit-today' || showDateModal === 'ref-credit-difference') {
                                         if (dateRange.srId) params.append('srId', dateRange.srId);
                                     }
                                     if (showDateModal === 'supplier-stock') {
