@@ -72,6 +72,8 @@ const POSPage = () => {
     const [filteredHistory, setFilteredHistory] = useState([]);
     const [searchHistoryQuery, setSearchHistoryQuery] = useState('');
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
+    const historyItemsPerPage = 10;
 
     // Active Completed Sale State for Direct Printing
     const [completedSale, setCompletedSale] = useState(null);
@@ -234,6 +236,7 @@ const POSPage = () => {
 
     // Filter receipt history
     useEffect(() => {
+        setHistoryCurrentPage(1);
         if (!searchHistoryQuery.trim()) {
             setFilteredHistory(salesHistory);
             return;
@@ -1418,68 +1421,106 @@ const POSPage = () => {
                                     No completed receipt logs found matching filters.
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                            <tr className="border-b border-slate-200 dark:border-[#334155] text-slate-400 font-black uppercase tracking-wider">
-                                                <th className="pb-3 pt-1">Bill No</th>
-                                                <th className="pb-3 pt-1">Date & Time</th>
-                                                <th className="pb-3 pt-1">Customer</th>
-                                                <th className="pb-3 pt-1">Cashier</th>
-                                                <th className="pb-3 pt-1">Method</th>
-                                                <th className="pb-3 pt-1 text-right">Net Amount</th>
-                                                <th className="pb-3 pt-1 text-center">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-[#334155] font-semibold text-slate-700 dark:text-slate-300">
-                                            {filteredHistory.map((sale) => (
-                                                <tr key={sale.PSH_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/30 transition-colors">
-                                                    <td className="py-3.5 text-blue-600 dark:text-blue-400 font-black">{sale.PSH_INVOICE_NO}</td>
-                                                    <td className="py-3.5 text-slate-500">
-                                                        {new Date(sale.PSH_DATE).toLocaleDateString()} {new Date(sale.PSH_DATE).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </td>
-                                                    <td className="py-3.5 truncate max-w-[120px]">{sale.PSH_CUSTOMER_NAME}</td>
-                                                    <td className="py-3.5 capitalize">{sale.PSH_ENTERED_BY}</td>
-                                                    <td className="py-3.5">
-                                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${sale.PSH_PAYMENT_METHOD === 'Cash'
-                                                            ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
-                                                            : sale.PSH_PAYMENT_METHOD === 'Card'
-                                                                ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
-                                                                : sale.PSH_PAYMENT_METHOD === 'Credit'
-                                                                    ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
-                                                                    : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
-                                                            }`}>
-                                                            {sale.PSH_PAYMENT_METHOD}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3.5 text-right font-black text-slate-900 dark:text-white">
-                                                        Rs. {parseFloat(sale.PSH_NET_AMOUNT).toFixed(2)}
-                                                    </td>
-                                                    <td className="py-3.5 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button
-                                                                onClick={() => handleViewReprint(sale)}
-                                                                className="px-3 py-1 bg-slate-100 dark:bg-[#0f172a] hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white border border-slate-200 dark:border-[#334155] rounded-lg transition-all flex items-center gap-1 text-[10px]"
-                                                                title="Reprint"
-                                                            >
-                                                                <Printer className="w-3 h-3" />
-                                                                Reprint
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteSale(sale)}
-                                                                className="px-3 py-1 bg-slate-100 dark:bg-[#0f172a] hover:bg-red-600 dark:hover:bg-red-600 hover:text-white border border-slate-200 dark:border-[#334155] rounded-lg transition-all flex items-center gap-1 text-[10px] text-red-500"
-                                                                title="Delete Sale"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                <>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs border-collapse">
+                                            <thead>
+                                                <tr className="border-b border-slate-200 dark:border-[#334155] text-slate-400 font-black uppercase tracking-wider">
+                                                    <th className="pb-3 pt-1">Bill No</th>
+                                                    <th className="pb-3 pt-1">Date & Time</th>
+                                                    <th className="pb-3 pt-1">Customer</th>
+                                                    <th className="pb-3 pt-1">Cashier</th>
+                                                    <th className="pb-3 pt-1">Method</th>
+                                                    <th className="pb-3 pt-1 text-right">Net Amount</th>
+                                                    <th className="pb-3 pt-1 text-center">Action</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-[#334155] font-semibold text-slate-700 dark:text-slate-300">
+                                                {filteredHistory.slice((historyCurrentPage - 1) * historyItemsPerPage, historyCurrentPage * historyItemsPerPage).map((sale) => (
+                                                    <tr key={sale.PSH_ID} className="hover:bg-slate-50 dark:hover:bg-[#0f172a]/30 transition-colors">
+                                                        <td className="py-3.5 text-blue-600 dark:text-blue-400 font-black">{sale.PSH_INVOICE_NO}</td>
+                                                        <td className="py-3.5 text-slate-500">
+                                                            {new Date(sale.PSH_DATE).toLocaleDateString()} {new Date(sale.PSH_DATE).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </td>
+                                                        <td className="py-3.5 truncate max-w-[120px]">{sale.PSH_CUSTOMER_NAME}</td>
+                                                        <td className="py-3.5 capitalize">{sale.PSH_ENTERED_BY}</td>
+                                                        <td className="py-3.5">
+                                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${sale.PSH_PAYMENT_METHOD === 'Cash'
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+                                                                : sale.PSH_PAYMENT_METHOD === 'Card'
+                                                                    ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
+                                                                    : sale.PSH_PAYMENT_METHOD === 'Credit'
+                                                                        ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600'
+                                                                        : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
+                                                                }`}>
+                                                                {sale.PSH_PAYMENT_METHOD}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3.5 text-right font-black text-slate-900 dark:text-white">
+                                                            Rs. {parseFloat(sale.PSH_NET_AMOUNT).toFixed(2)}
+                                                        </td>
+                                                        <td className="py-3.5 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleViewReprint(sale)}
+                                                                    className="px-3 py-1 bg-slate-100 dark:bg-[#0f172a] hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white border border-slate-200 dark:border-[#334155] rounded-lg transition-all flex items-center gap-1 text-[10px]"
+                                                                    title="Reprint"
+                                                                >
+                                                                    <Printer className="w-3 h-3" />
+                                                                    Reprint
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteSale(sale)}
+                                                                    className="px-3 py-1 bg-slate-100 dark:bg-[#0f172a] hover:bg-red-600 dark:hover:bg-red-600 hover:text-white border border-slate-200 dark:border-[#334155] rounded-lg transition-all flex items-center gap-1 text-[10px] text-red-500"
+                                                                    title="Delete Sale"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Pagination */}
+                                    {filteredHistory.length > historyItemsPerPage && (
+                                        <div className="px-6 py-4 bg-slate-50/50 dark:bg-[#0f172a]/50 border-t border-slate-200 dark:border-[#334155] flex flex-col md:flex-row items-center justify-between gap-4 mt-4 rounded-2xl">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                Showing {Math.min(filteredHistory.length, (historyCurrentPage - 1) * historyItemsPerPage + 1)} to {Math.min(filteredHistory.length, historyCurrentPage * historyItemsPerPage)} of {filteredHistory.length} entries
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    disabled={historyCurrentPage === 1}
+                                                    onClick={() => setHistoryCurrentPage(prev => Math.max(1, prev - 1))}
+                                                    className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <div className="flex items-center space-x-1">
+                                                    {[...Array(Math.ceil(filteredHistory.length / historyItemsPerPage))].map((_, i) => (
+                                                        <button
+                                                            key={i + 1}
+                                                            onClick={() => setHistoryCurrentPage(i + 1)}
+                                                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-black transition-all ${historyCurrentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+                                                        >
+                                                            {i + 1}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <button
+                                                    disabled={historyCurrentPage === Math.ceil(filteredHistory.length / historyItemsPerPage)}
+                                                    onClick={() => setHistoryCurrentPage(prev => Math.min(Math.ceil(filteredHistory.length / historyItemsPerPage), prev + 1))}
+                                                    className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -2145,9 +2186,24 @@ const POSPage = () => {
                             <div className="flex flex-col gap-1 text-right">
                                 <div className="flex justify-between text-[13.5px] font-medium"><span>SUBTOTAL:</span><span>Rs. {completedSale.subtotal.toFixed(2)}</span></div>
                                 {completedSale.discount > 0 && <div className="flex justify-between text-red-600 text-[12.5px]"><span>DISCOUNT:</span><span>-Rs. {completedSale.discount.toFixed(2)}</span></div>}
-                                <div className="flex justify-between font-bold text-[16px] pt-1 border-t border-dashed border-black"><span>NET TOTAL:</span><span>Rs. {completedSale.netAmount.toFixed(2)}</span></div>
-                                <div className="flex justify-between text-[12px]"><span>PAID {(completedSale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
-                                <div className="flex justify-between font-medium text-[12px] text-emerald-600"><span>Balance:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
+                                {completedSale.previousBalance !== undefined && completedSale.previousBalance > 0 && (
+                                    <div className="flex justify-between text-[13.5px] font-medium"><span>OLD BALANCE:</span><span>Rs. {completedSale.previousBalance.toFixed(2)}</span></div>
+                                )}
+                                <div className="flex justify-between font-bold text-[16px] pt-1 border-t border-dashed border-black">
+                                    <span>NET TOTAL:</span>
+                                    <span>Rs. {((completedSale.previousBalance || 0) + completedSale.netAmount).toFixed(2)}</span>
+                                </div>
+                                {(completedSale.paymentMethod === 'Credit' || (completedSale.previousBalance !== undefined && completedSale.previousBalance > 0)) ? (
+                                    <>
+                                        <div className="flex justify-between text-[12px]"><span>AMOUNT PAID:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
+                                        <div className="flex justify-between font-bold text-[12px] text-slate-800 dark:text-white"><span>NEW BALANCE:</span><span>Rs. {(completedSale.newBalance || 0).toFixed(2)}</span></div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex justify-between text-[12px]"><span>PAID {(completedSale.paymentMethod || 'CASH').toUpperCase()}:</span><span>Rs. {completedSale.amountTendered.toFixed(2)}</span></div>
+                                        <div className="flex justify-between font-medium text-[12px] text-emerald-600"><span>CHANGE:</span><span>Rs. {completedSale.amountChange.toFixed(2)}</span></div>
+                                    </>
+                                )}
                             </div>
 
                             <div className="border-b border-dashed border-black my-1.5"></div>
