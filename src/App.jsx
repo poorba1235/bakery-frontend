@@ -20,6 +20,7 @@ import CityManagement from './pages/CityManagement';
 import ProductCategory from './pages/ProductCategory';
 import ProductManagement from './pages/ProductManagement';
 import RecipeManagement from './pages/RecipeManagement';
+import ProfitCalculator from './pages/ProfitCalculator';
 import RawMaterialCategory from './pages/RawMaterialCategory';
 import RawMaterialItem from './pages/RawMaterialItem';
 import WarehouseLocation from './pages/WarehouseLocation';
@@ -190,6 +191,14 @@ function App() {
                 element={
                   <ProtectedLayout>
                     <RecipeManagement />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/product/profit-calculator"
+                element={
+                  <ProtectedLayout>
+                    <ProfitCalculator />
                   </ProtectedLayout>
                 }
               />

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     Box,
+    Calculator,
     ChefHat,
     ChevronDown,
     ChevronRight,
@@ -59,7 +60,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             subItems: [
                 { name: 'Product Category', path: '/product/category', icon: Layers },
                 { name: 'Product Master', path: '/product/items', icon: Package },
-                { name: 'Recipe Master', path: '/product/recipe', icon: ChefHat }
+                { name: 'Recipe Master', path: '/product/recipe', icon: ChefHat },
+                { name: 'Calculate Profit', path: '/product/profit-calculator', icon: Calculator, adminOnly: true }
             ]
         },
         {
@@ -129,6 +131,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     ];
 
     const perms = user?.permissions?.split(',') || [];
+    const userRoles = user?.roles?.toLowerCase() || '';
+    const isAdmin = userRoles.includes('admin') || userRoles.includes('super admin');
+
+    const isSubItemAccessible = (sub) => {
+        if (sub.adminOnly && !isAdmin) return false;
+        return !sub.permission || perms.includes(sub.permission);
+    };
 
     const filteredMenuItems = menuItems.filter(item => {
         // If it's a simple link, check its permission
@@ -139,7 +148,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         // If it's a group, check if the parent permission is met
         // OR if any of its sub-items are accessible
         const hasParentPermission = !item.permission || perms.includes(item.permission);
-        const hasAccessibleSubItem = item.subItems.some(sub => !sub.permission || perms.includes(sub.permission));
+        const hasAccessibleSubItem = item.subItems.some(isSubItemAccessible);
 
         return hasParentPermission || hasAccessibleSubItem;
     });
@@ -288,7 +297,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                                                 className="overflow-hidden ml-4 mt-1 space-y-1"
                                             >
                                                 {item.subItems
-                                                    .filter(sub => !sub.permission || perms.includes(sub.permission))
+                                                    .filter(isSubItemAccessible)
                                                     .map((sub) => (
                                                         <Link
                                                             key={sub.name}
