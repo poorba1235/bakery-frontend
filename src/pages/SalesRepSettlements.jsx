@@ -166,7 +166,29 @@ const SalesRepSettlements = () => {
     const handlePrint = () => {
         if (!activeSettlement) return;
 
+        const getItemPrice = (d) => {
+            const unitPrice = parseFloat(d.UNIT_PRICE) || 0;
+            if (unitPrice > 0) return unitPrice;
+            const soldQty = parseFloat(d.SOLD_QTY) || 0;
+            const lineNet = parseFloat(d.LINE_NET_CASH) || 0;
+            if (soldQty > 0 && lineNet > 0) return lineNet / soldQty;
+            return 0;
+        };
+
+        const totalLoaded = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0), 0);
         const totalSold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.SOLD_QTY) || 0), 0);
+        const totalFree = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.FREE_QTY) || 0), 0);
+        const totalExpired = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0), 0);
+        const totalOld = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.OLD_QTY) || 0), 0);
+        const totalUnsold = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0), 0);
+
+        const totalLoadedPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0) * getItemPrice(d), 0);
+        const totalSoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || (parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)), 0);
+        const totalFreePrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.FREE_QTY) || 0) * getItemPrice(d), 0);
+        const totalExpiredPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0) * getItemPrice(d), 0);
+        const totalOldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.OLD_QTY) || 0) * getItemPrice(d), 0);
+        const totalUnsoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0) * getItemPrice(d), 0);
+
         const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
         const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
         const currentTotalNetCash = grossCash - dayDiscount;
@@ -267,6 +289,18 @@ const SalesRepSettlements = () => {
                             </tr>
                         `).join('')}
                     </tbody>
+                    <tfoot>
+                        <tr style="font-weight: bold; background-color: #f4f4f4;">
+                            <td class="left">TOTAL VALUE</td>
+                            <td>Rs. ${totalLoadedPrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalLoaded} pcs)</span></td>
+                            <td>Rs. ${totalSoldPrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalSold} pcs)</span></td>
+                            <td>Rs. ${totalFreePrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalFree} pcs)</span></td>
+                            <td>Rs. ${totalExpiredPrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalExpired} pcs)</span></td>
+                            <td>Rs. ${totalOldPrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalOld} pcs)</span></td>
+                            <td>Rs. ${totalUnsoldPrice.toFixed(2)}<br/><span style="font-size:11px; font-weight:normal; color:#555;">(${totalUnsold} pcs)</span></td>
+                            <td class="right">Rs. ${grossCash.toFixed(2)}</td>
+                        </tr>
+                    </tfoot>
                 </table>
 
                 <div class="summary-section">
@@ -595,6 +629,66 @@ const SalesRepSettlements = () => {
                                                 </tr>
                                             ))}
                                         </tbody>
+                                        {(() => {
+                                            const getItemPrice = (d) => {
+                                                const unitPrice = parseFloat(d.UNIT_PRICE) || 0;
+                                                if (unitPrice > 0) return unitPrice;
+                                                const soldQty = parseFloat(d.SOLD_QTY) || 0;
+                                                const lineNet = parseFloat(d.LINE_NET_CASH) || 0;
+                                                if (soldQty > 0 && lineNet > 0) return lineNet / soldQty;
+                                                return 0;
+                                            };
+
+                                            const totalLoadedQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0), 0);
+                                            const totalSoldQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.SOLD_QTY) || 0), 0);
+                                            const totalFreeQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.FREE_QTY) || 0), 0);
+                                            const totalReturnedQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0), 0);
+                                            const totalOldQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.OLD_QTY) || 0), 0);
+                                            const totalUnsoldQty = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0), 0);
+
+                                            const totalLoadedPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LOADED_QTY) || 0) * getItemPrice(d), 0);
+                                            const totalSoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || (parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)), 0);
+                                            const totalFreePrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.FREE_QTY) || 0) * getItemPrice(d), 0);
+                                            const totalReturnedPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0) * getItemPrice(d), 0);
+                                            const totalOldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.OLD_QTY) || 0) * getItemPrice(d), 0);
+                                            const totalUnsoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0) * getItemPrice(d), 0);
+                                            const totalNetCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
+
+                                            return (
+                                                <tfoot className="bg-slate-100 dark:bg-[#0f172a] font-bold border-t-2 border-slate-300 dark:border-[#334155]">
+                                                    <tr>
+                                                        <td className="px-4 py-3 font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs">Total Price</td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-indigo-600 dark:text-indigo-400 font-bold">Rs. {totalLoadedPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalLoadedQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-blue-600 dark:text-blue-400 font-bold">Rs. {totalSoldPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalSoldQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-slate-600 dark:text-slate-400 font-bold">Rs. {totalFreePrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalFreeQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-red-600 dark:text-red-400 font-bold">Rs. {totalReturnedPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalReturnedQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-orange-600 dark:text-orange-400 font-bold">Rs. {totalOldPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalOldQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center font-mono">
+                                                            <div className="text-teal-600 dark:text-teal-400 font-bold">Rs. {totalUnsoldPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalUnsoldQty} pcs)</div>
+                                                        </td>
+                                                        <td className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-slate-800 dark:text-white font-bold">Rs. {totalNetCash.toFixed(2)}</div>
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            );
+                                        })()}
                                     </table>
                                 </div>
 
@@ -713,10 +807,10 @@ const SalesRepSettlements = () => {
                                         Print Summary
                                     </button>
                                     <div className="flex gap-3 ml-auto">
-                                        <button type="button" onClick={() => handleSave(0)} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#0f172a] transition-colors shadow-sm flex items-center">
+                                        {/* <button type="button" onClick={() => handleSave(0)} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 dark:bg-[#1e293b] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#0f172a] transition-colors shadow-sm flex items-center">
                                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                                             Save Adjustments
-                                        </button>
+                                        </button> */}
                                         <button type="button" onClick={() => handleSave(1)} disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition-all flex items-center">
                                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                                             Mark as Settled
