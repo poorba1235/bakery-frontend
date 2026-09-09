@@ -314,6 +314,7 @@ const SalesRepSettlements = () => {
                                 <th>GROSS<br/>VALUE</th>
                                 <th>TOTAL PAID AMOUNT<br/>(ALL INVOICES)</th>
                                 <th>TOTAL GIVEN<br/>CREDIT</th>
+                                <th>COLLECTED<br/>CREDIT</th>
                                 <th>GLOBAL<br/>DISCOUNT</th>
                                 <th>TOTAL RETURN/EXPIRE<br/>AMOUNT</th>
                                 <th>TOTAL DISPLAY<br/>DISCOUNT</th>
@@ -326,6 +327,7 @@ const SalesRepSettlements = () => {
                                 <td>Rs. ${grossCash.toFixed(2)}</td>
                                 <td><b>Rs. ${finalPaidCash.toFixed(2)}</b></td>
                                 <td>Rs. ${totalCredit.toFixed(2)}</td>
+                                <td>Rs. ${(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</td>
                                 <td class="deduction">Rs. ${dayDiscount.toFixed(2)}</td>
                                 <td class="deduction">Rs. ${totalExpiredValue.toFixed(2)}</td>
                                 <td class="deduction">Rs. ${totalDisplayDiscount.toFixed(2)}</td>
@@ -661,6 +663,11 @@ const SalesRepSettlements = () => {
                                             const customFormulaValue = (totalOldPrice + totalLoadedPrice) - (totalReturnedPrice + dayDiscount + totalDisplayDiscount);
                                             const totalSoldDiscountVariance = settlementDetails.reduce((sum, d) => sum + (((parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)) - (parseFloat(d.LINE_NET_CASH) || 0)), 0);
                                             const totalCombinedDiscount = totalSoldDiscountVariance + dayDiscount + totalDisplayDiscount;
+                                            const todayCollectedCredit = parseFloat(activeSettlement.DEBT_COLLECTION) || 0;
+                                            const todayGivenCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
+                                            const netCreditDifference = todayCollectedCredit - todayGivenCredit;
+                                            const netLoadOldReturned = (totalLoadedPrice + totalOldPrice) - totalReturnedPrice;
+                                            const grandFormulaTotal = (netLoadOldReturned - totalCombinedDiscount + netCreditDifference) - totalUnsoldPrice;
 
                                             return (
                                                 <tfoot className="bg-slate-100 dark:bg-[#0f172a] font-bold border-t-2 border-slate-300 dark:border-[#334155]">
@@ -727,11 +734,24 @@ const SalesRepSettlements = () => {
                                                             <div className="text-indigo-900 dark:text-indigo-200 text-sm">Rs. {(((totalLoadedPrice + totalOldPrice) - totalReturnedPrice) - totalCombinedDiscount).toFixed(2)}</div>
                                                         </td>
                                                     </tr>
+                                                    <tr className="border-t border-purple-200 dark:border-purple-900/50 bg-purple-50/60 dark:bg-purple-950/30">
+                                                        <td className="px-4 py-3 font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider text-xs">Today Collected Credit - Today Given Credit</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-purple-600 dark:text-purple-400 font-bold">Rs. {netCreditDifference.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(Collected: Rs. {todayCollectedCredit.toFixed(2)} - Given: Rs. {todayGivenCredit.toFixed(2)})</div>
+                                                        </td>
+                                                    </tr>
                                                     <tr className="border-t border-teal-200 dark:border-teal-900/50 bg-teal-50/60 dark:bg-teal-950/30">
                                                         <td className="px-4 py-3 font-black text-teal-700 dark:text-teal-300 uppercase tracking-wider text-xs">Unsold Amount</td>
                                                         <td colSpan="7" className="px-6 py-3 text-right font-mono">
                                                             <div className="text-teal-600 dark:text-teal-400 font-bold">Rs. {totalUnsoldPrice.toFixed(2)}</div>
                                                             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalUnsoldQty} pcs)</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t-2 border-emerald-600 dark:border-emerald-500 bg-emerald-100/90 dark:bg-emerald-950/70">
+                                                        <td className="px-4 py-3.5 font-black text-emerald-950 dark:text-emerald-200 uppercase tracking-wider text-xs">Final</td>
+                                                        <td colSpan="7" className="px-6 py-3.5 text-right font-mono font-black">
+                                                            <div className="text-emerald-950 dark:text-emerald-200 text-base font-black">Rs. {grandFormulaTotal.toFixed(2)}</div>
                                                         </td>
                                                     </tr>
                                                 </tfoot>
@@ -794,7 +814,7 @@ const SalesRepSettlements = () => {
                                             {/* Financial Summary Row */}
                                             <div>
                                                 <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Financial Summary</h4>
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-2.5">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-2.5">
                                                     <div className="bg-blue-50/70 dark:bg-blue-500/10 p-2.5 rounded-xl border border-blue-200 dark:border-blue-500/20">
                                                         <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight truncate">Gross Value</div>
                                                         <div className="text-sm font-bold text-blue-700 dark:text-blue-300 font-mono mt-0.5">Rs. {grossCash.toFixed(2)}</div>
@@ -813,6 +833,11 @@ const SalesRepSettlements = () => {
                                                     <div className="bg-pink-50/70 dark:bg-pink-500/10 p-2.5 rounded-xl border border-pink-200 dark:border-pink-500/20">
                                                         <div className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase tracking-tight truncate">Display Disc.</div>
                                                         <div className="text-sm font-bold text-pink-700 dark:text-pink-300 font-mono mt-0.5">- Rs. {totalDisplayDiscount.toFixed(2)}</div>
+                                                    </div>
+
+                                                    <div className="bg-purple-50/70 dark:bg-purple-500/10 p-2.5 rounded-xl border border-purple-200 dark:border-purple-500/20">
+                                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-tight truncate">Credit Collected</div>
+                                                        <div className="text-sm font-bold text-purple-700 dark:text-purple-300 font-mono mt-0.5">Rs. {(parseFloat(activeSettlement.DEBT_COLLECTION) || 0).toFixed(2)}</div>
                                                     </div>
 
                                                     <div className="bg-red-50/70 dark:bg-red-500/10 p-2.5 rounded-xl border border-red-200 dark:border-red-500/20">
