@@ -186,14 +186,17 @@ const SalesRepSettlements = () => {
         const totalSoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || (parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)), 0);
         const totalFreePrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.FREE_QTY) || 0) * getItemPrice(d), 0);
         const totalExpiredPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.EXPIRED_QTY) || 0) * getItemPrice(d), 0);
+        const totalReturnedPrice = totalExpiredPrice;
+        const totalReturnedQty = totalExpired;
         const totalOldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.OLD_QTY) || 0) * getItemPrice(d), 0);
         const totalUnsoldPrice = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.UNSOLD_QTY) || 0) * getItemPrice(d), 0);
-
+        const totalSoldDiscountVariance = settlementDetails.reduce((sum, d) => sum + (((parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)) - (parseFloat(d.LINE_NET_CASH) || 0)), 0);
         const grossCash = settlementDetails.reduce((sum, d) => sum + (parseFloat(d.LINE_NET_CASH) || 0), 0);
         const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
         const currentTotalNetCash = grossCash - dayDiscount;
         const totalExpiredValue = parseFloat(activeSettlement.TOTAL_EXPIRED_VALUE) || 0;
         const totalDisplayDiscount = parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0;
+        const totalCombinedDiscount = totalSoldDiscountVariance + dayDiscount + totalDisplayDiscount;
         const displayNetValue = currentTotalNetCash - totalExpiredValue - totalDisplayDiscount;
 
         const totalCredit = parseFloat(activeSettlement.TOTAL_CREDIT) || 0;
@@ -656,6 +659,8 @@ const SalesRepSettlements = () => {
                                             const dayDiscount = parseFloat(activeSettlement.TOTAL_DISCOUNT) || 0;
                                             const totalDisplayDiscount = parseFloat(activeSettlement.TOTAL_DISPLAY_DISCOUNT) || 0;
                                             const customFormulaValue = (totalOldPrice + totalLoadedPrice) - (totalReturnedPrice + dayDiscount + totalDisplayDiscount);
+                                            const totalSoldDiscountVariance = settlementDetails.reduce((sum, d) => sum + (((parseFloat(d.SOLD_QTY) || 0) * getItemPrice(d)) - (parseFloat(d.LINE_NET_CASH) || 0)), 0);
+                                            const totalCombinedDiscount = totalSoldDiscountVariance + dayDiscount + totalDisplayDiscount;
 
                                             return (
                                                 <tfoot className="bg-slate-100 dark:bg-[#0f172a] font-bold border-t-2 border-slate-300 dark:border-[#334155]">
@@ -687,6 +692,46 @@ const SalesRepSettlements = () => {
                                                         </td>
                                                         <td className="px-6 py-3 text-right font-mono">
                                                             <div className="text-slate-800 dark:text-white font-bold">Rs. {totalNetCash.toFixed(2)}</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/60 dark:bg-indigo-950/30">
+                                                        <td className="px-4 py-3 font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wider text-xs">Load + Old</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-indigo-600 dark:text-indigo-400 font-bold">Rs. {(totalLoadedPrice + totalOldPrice).toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalLoadedQty + totalOldQty} pcs)</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t border-red-200 dark:border-red-900/50 bg-red-50/60 dark:bg-red-950/30">
+                                                        <td className="px-4 py-3 font-black text-red-700 dark:text-red-300 uppercase tracking-wider text-xs">Returned</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-red-600 dark:text-red-400 font-bold">Rs. {totalReturnedPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalReturnedQty} pcs)</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/30">
+                                                        <td className="px-4 py-3 font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider text-xs">Load + Old - Returned</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-emerald-600 dark:text-emerald-400 font-bold">Rs. {((totalLoadedPrice + totalOldPrice) - totalReturnedPrice).toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({(totalLoadedQty + totalOldQty) - totalReturnedQty} pcs)</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30">
+                                                        <td className="px-4 py-3 font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider text-xs">Total Discounts (Sold Diff + Display + Global)</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-amber-600 dark:text-amber-400 font-bold">Rs. {totalCombinedDiscount.toFixed(2)}</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t-2 border-indigo-500 dark:border-indigo-400 bg-indigo-100/70 dark:bg-indigo-950/50">
+                                                        <td className="px-4 py-3 font-black text-indigo-900 dark:text-indigo-200 uppercase tracking-wider text-xs">(Load + Old - Returned) - Total Discounts</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono font-black">
+                                                            <div className="text-indigo-900 dark:text-indigo-200 text-sm">Rs. {(((totalLoadedPrice + totalOldPrice) - totalReturnedPrice) - totalCombinedDiscount).toFixed(2)}</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr className="border-t border-teal-200 dark:border-teal-900/50 bg-teal-50/60 dark:bg-teal-950/30">
+                                                        <td className="px-4 py-3 font-black text-teal-700 dark:text-teal-300 uppercase tracking-wider text-xs">Unsold Amount</td>
+                                                        <td colSpan="7" className="px-6 py-3 text-right font-mono">
+                                                            <div className="text-teal-600 dark:text-teal-400 font-bold">Rs. {totalUnsoldPrice.toFixed(2)}</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">({totalUnsoldQty} pcs)</div>
                                                         </td>
                                                     </tr>
                                                 </tfoot>
