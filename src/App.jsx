@@ -37,6 +37,7 @@ import SalesRepManagement from './pages/SalesRepManagement';
 import OrderManagement from './pages/OrderManagement';
 import OrderCrossCheck from './pages/OrderCrossCheck';
 import POSPage from './pages/POSPage';
+import ExpenseManagement from './pages/ExpenseManagement';
 
 const ProtectedLayout = ({ children }) => {
   const { user, loading } = useAuth();
@@ -287,6 +288,14 @@ function App() {
                 element={
                   <ProtectedLayout>
                     <SalesRepManagement />
+                  </ProtectedLayout>
+                }
+              />
+              <Route
+                path="/maintain/expenses"
+                element={
+                  <ProtectedLayout>
+                    <ExpenseManagement />
                   </ProtectedLayout>
                 }
               />

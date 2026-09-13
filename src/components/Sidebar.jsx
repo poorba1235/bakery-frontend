@@ -106,6 +106,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 { name: 'Sales Representative', path: '/maintain/sales-rep', icon: Users },
                 { name: 'Customers (Shops)', path: '/maintain/customers', icon: Users },
                 { name: 'POS Customers', path: '/maintain/pos-customers', icon: Users },
+                { name: 'Expense Management', path: '/maintain/expenses', icon: Receipt },
                 { name: 'Suppliers', path: '/suppliers', icon: Users, permission: 'supply-customer' },
                 // { name: 'Tax', path: '/maintain/tax', icon: Receipt, permission: 'tax' }
             ]
