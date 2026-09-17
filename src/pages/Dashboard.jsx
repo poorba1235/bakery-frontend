@@ -1,31 +1,27 @@
 import { motion } from "framer-motion";
-import { Shield, Users, Package, ShoppingCart, DollarSign, Activity, Sparkles, TrendingUp, Wallet, BarChart3, PieChart } from "lucide-react";
+import { Shield, Users, Package, ShoppingCart, DollarSign, Sparkles, TrendingUp, Wallet, Receipt, PieChart, ArrowUpRight, Scale } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import { useNotification } from "../context/NotificationContext";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const role = user?.roles?.split(",")[0] || "Staff";
   const isAdmin = role.toLowerCase() === 'admin';
-  const { showNotification } = useNotification();
 
-  const [expense, setExpense] = useState('');
-  const [isUpdatingExpense, setIsUpdatingExpense] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     users: 0,
     products: 0,
     orders: 0,
     monthlyRevenue: 0,
-    revenueChart: [],
+    todayHandover: 0,
+    todayExpenses: 0,
     topProducts: []
   });
 
   useEffect(() => {
     if (isAdmin) {
-      fetchExpense();
       fetchDashboardStats();
     }
   }, [isAdmin]);
@@ -36,28 +32,6 @@ const Dashboard = () => {
       setDashboardData(res.data);
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
-    }
-  };
-
-  const fetchExpense = async () => {
-    try {
-      const res = await api.get('/expense');
-      const val = parseFloat(res.data.cost_price);
-      setExpense(val === 0 ? '' : res.data.cost_price);
-    } catch (err) {
-      console.error('Failed to fetch expense:', err);
-    }
-  };
-
-  const handleUpdateExpense = async () => {
-    setIsUpdatingExpense(true);
-    try {
-      await api.put('/expense', { cost_price: expense });
-      showNotification('Expense updated successfully!', 'success');
-    } catch (err) {
-      showNotification('Failed to update expense', 'error');
-    } finally {
-      setIsUpdatingExpense(false);
     }
   };
 
@@ -94,6 +68,22 @@ const Dashboard = () => {
       bg: "bg-purple-500/10",
       border: "border-purple-500/20",
     },
+    {
+      title: "Today Settlement Handover",
+      value: isAdmin ? `Rs. ${Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
+      icon: Wallet,
+      color: "text-teal-500",
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/20",
+    },
+    {
+      title: "Today Expenses",
+      value: isAdmin ? `Rs. ${Number(dashboardData.todayExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
+      icon: Receipt,
+      color: "text-rose-500",
+      bg: "bg-rose-500/10",
+      border: "border-rose-500/20",
+    },
   ];
 
   const containerVariants = {
@@ -101,7 +91,7 @@ const Dashboard = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.08
       }
     }
   };
@@ -109,20 +99,6 @@ const Dashboard = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-  };
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl border border-slate-700">
-          <p className="font-bold mb-1">{label}</p>
-          <p className="text-emerald-400">
-            Rs. {Number(payload[0].value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   const CustomBarTooltip = ({ active, payload, label }) => {
@@ -140,6 +116,8 @@ const Dashboard = () => {
   };
 
   const BAR_COLORS = ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
+
+  const netTodayCash = Number(dashboardData.todayHandover || 0) - Number(dashboardData.todayExpenses || 0);
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#0f172a] text-slate-800 dark:text-white pb-12">
@@ -179,17 +157,9 @@ const Dashboard = () => {
                 Welcome back, {user?.username} <span className="inline-block origin-[70%_70%] animate-wave">👋</span>
               </h2>
               <p className="text-blue-100/80 max-w-xl text-lg font-medium leading-relaxed">
-                Here's what's happening with your bakery today. Manage operations, track sales, and oversee your entire system.
+                Here's what's happening with your bakery today. Manage operations, track settlements, expenses, and oversee your entire system.
               </p>
             </div>
-            
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex-shrink-0"
-            >
-              
-            </motion.div>
           </div>
           
           <Shield className="absolute -right-8 -bottom-8 w-64 h-64 text-white/5 transform rotate-12 pointer-events-none" />
@@ -200,7 +170,7 @@ const Dashboard = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8"
         >
           {stats.map((item, i) => {
             const Icon = item.icon;
@@ -209,17 +179,17 @@ const Dashboard = () => {
                 key={i}
                 variants={itemVariants}
                 whileHover={{ y: -5, scale: 1.02 }}
-                className={`bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl border ${item.border} dark:border-[#334155] rounded-3xl p-6 shadow-lg shadow-slate-200/50 dark:shadow-none transition-all group relative overflow-hidden`}
+                className={`bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl border ${item.border} dark:border-[#334155] rounded-3xl p-5 shadow-lg shadow-slate-200/50 dark:shadow-none transition-all group relative overflow-hidden`}
               >
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-${item.color.split('-')[1]}-500/10 to-transparent rounded-bl-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3.5 rounded-2xl ${item.bg} text-${item.color.split('-')[1]}-600 dark:${item.color} group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6" strokeWidth={2.5} />
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-${item.color.split('-')[1]}-500/10 to-transparent rounded-bl-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                <div className="flex justify-between items-start mb-3">
+                  <div className={`p-3 rounded-2xl ${item.bg} text-${item.color.split('-')[1]}-600 dark:${item.color} group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-5 h-5" strokeWidth={2.5} />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1 tracking-tight">{item.value}</h3>
-                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{item.title}</p>
+                  <h3 className="text-xl xl:text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-tight truncate">{item.value}</h3>
+                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{item.title}</p>
                 </div>
               </motion.div>
             );
@@ -227,81 +197,106 @@ const Dashboard = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content Area */}
+          {/* Main Content Area: Today's Financial Overview */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="lg:col-span-2 space-y-8"
           >
-            {/* Revenue Trend Chart */}
+            {/* Today's Financial Highlights Panel */}
             <div className="bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-[#334155] shadow-lg shadow-slate-200/50 dark:shadow-none p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                  <BarChart3 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white">Revenue Trend</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Daily sales performance over the last 7 days</p>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400">
+                    <Wallet className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-800 dark:text-white">Today's Settlement & Expenses</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Daily financial handover and expenses summary</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="h-[300px] w-full">
-                {!isAdmin ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                    <Shield className="w-8 h-8 mb-2 opacity-50 text-indigo-500" />
-                    <p className="text-sm">Admin access required to view revenue trends.</p>
+              {!isAdmin ? (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                  <Shield className="w-10 h-10 mb-3 opacity-50 text-indigo-500" />
+                  <p className="text-sm font-bold">Admin access required to view financial summary.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Today Settlement Final Handover Card */}
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="relative overflow-hidden bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent border border-teal-500/20 rounded-3xl p-6 dark:bg-[#0f172a]/60"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20">
+                        Final Handover
+                      </span>
+                      <div className="p-2.5 rounded-xl bg-teal-500/20 text-teal-500">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Settlement Final Handover</p>
+                    <h4 className="text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tight mb-3">
+                      Rs. {Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                      <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                      Total net handover collected today across sales reps
+                    </p>
+                  </motion.div>
+
+                  {/* Today Expenses Card */}
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="relative overflow-hidden bg-gradient-to-br from-rose-500/10 via-red-500/5 to-transparent border border-rose-500/20 rounded-3xl p-6 dark:bg-[#0f172a]/60"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
+                        Daily Expenses
+                      </span>
+                      <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-500">
+                        <Receipt className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Today's Total Expenses</p>
+                    <h4 className="text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tight mb-3">
+                      Rs. {Number(dashboardData.todayExpenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                      <DollarSign className="w-4 h-4 text-rose-500" />
+                      Recorded active expenses for today
+                    </p>
+                  </motion.div>
+
+                  {/* Today Net Cash Balance Indicator */}
+                  <div className="md:col-span-2 bg-slate-100/70 dark:bg-[#0f172a]/80 border border-slate-200 dark:border-[#334155] rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-500">
+                        <Scale className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Today Net Operational Balance</span>
+                        <h5 className="text-lg font-bold text-slate-800 dark:text-white">
+                          Handover vs. Expenses Difference
+                        </h5>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-2xl font-black font-mono ${netTodayCash >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {netTodayCash >= 0 ? '+' : ''}Rs. {netTodayCash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
-                ) : dashboardData.revenueChart && dashboardData.revenueChart.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={dashboardData.revenueChart}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                      <XAxis 
-                        dataKey="name" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: '#64748b', fontSize: 12 }} 
-                        dy={10}
-                      />
-                      <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: '#64748b', fontSize: 12 }}
-                        tickFormatter={(value) => `Rs.${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value}`}
-                      />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#64748b', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="#3b82f6" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorRevenue)" 
-                        activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400">
-                    No data available for the last 7 days.
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-          
           </motion.div>
 
-          {/* Sidebar Area */}
+          {/* Sidebar Area: Top Products */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
