@@ -16,6 +16,7 @@ const Dashboard = () => {
     orders: 0,
     monthlyRevenue: 0,
     todayHandover: 0,
+    handoverDate: null,
     todayExpenses: 0,
     topProducts: []
   });
@@ -69,7 +70,9 @@ const Dashboard = () => {
       border: "border-purple-500/20",
     },
     {
-      title: "Today Settlement Handover",
+      title: dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toISOString().split('T')[0]
+        ? `Final Handover Amount (${dashboardData.handoverDate})`
+        : "Final Handover Amount",
       value: isAdmin ? `Rs. ${Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
       icon: Wallet,
       color: "text-teal-500",
@@ -232,19 +235,23 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20">
-                        Final Handover
+                        {dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toISOString().split('T')[0]
+                          ? `Settled (${dashboardData.handoverDate})`
+                          : "Final Handover"}
                       </span>
                       <div className="p-2.5 rounded-xl bg-teal-500/20 text-teal-500">
                         <Wallet className="w-5 h-5" />
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Settlement Final Handover</p>
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Final Handover Amount</p>
                     <h4 className="text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tight mb-3">
                       Rs. {Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
                       <ArrowUpRight className="w-4 h-4 text-emerald-500" />
-                      Total net handover collected today across sales reps
+                      {dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toISOString().split('T')[0]
+                        ? `Most recently settled handover (${dashboardData.handoverDate})`
+                        : "Total net handover collected today across sales reps"}
                     </p>
                   </motion.div>
 
