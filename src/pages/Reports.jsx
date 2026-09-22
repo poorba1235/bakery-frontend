@@ -10,12 +10,13 @@ const Reports = () => {
     const canViewReports = perms.includes('view_reports');
 
     const [showDateModal, setShowDateModal] = useState(false);
-    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '', shopType: 'all', supplierId: '', materialId: '' });
+    const [dateRange, setDateRange] = useState({ from: '', to: '', productId: '', shopId: '', srId: '', shopType: 'all', supplierId: '', materialId: '', categoryId: '', stockStatus: '' });
     const [productsList, setProductsList] = useState([]);
     const [customersList, setCustomersList] = useState([]);
     const [salesRepsList, setSalesRepsList] = useState([]);
     const [suppliersList, setSuppliersList] = useState([]);
     const [rawMaterialsList, setRawMaterialsList] = useState([]);
+    const [categoriesList, setCategoriesList] = useState([]);
 
     useEffect(() => {
         const fetchFilters = async () => {
@@ -25,7 +26,8 @@ const Reports = () => {
                     api.get('/customers'),
                     api.get('/sales-rep'),
                     api.get('/suppliers'),
-                    api.get('/raw-material')
+                    api.get('/raw-material'),
+                    api.get('/raw-material/categories')
                 ]);
 
                 if (results[0].status === 'fulfilled') setProductsList(results[0].value.data);
@@ -33,6 +35,7 @@ const Reports = () => {
                 if (results[2].status === 'fulfilled') setSalesRepsList(results[2].value.data);
                 if (results[3].status === 'fulfilled') setSuppliersList(results[3].value.data);
                 if (results[4].status === 'fulfilled') setRawMaterialsList(results[4].value.data);
+                if (results[5].status === 'fulfilled') setCategoriesList(results[5].value.data);
             } catch (err) {
                 console.error('Failed to fetch filters data', err);
             }
@@ -369,7 +372,40 @@ const Reports = () => {
                                 </div>
                             )}
 
-                            {showDateModal !== 'recipe-cost' && (
+                            {showDateModal === 'raw-materials' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter by Category</label>
+                                        <select
+                                            value={dateRange.categoryId}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, categoryId: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-all appearance-none"
+                                        >
+                                            <option value="">All Categories</option>
+                                            {categoriesList.map(c => (
+                                                <option key={c.CAT_ID} value={c.CAT_ID}>
+                                                    {c.CAT_NAME}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Filter Stock Status</label>
+                                        <select
+                                            value={dateRange.stockStatus}
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, stockStatus: e.target.value }))}
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 transition-all appearance-none"
+                                        >
+                                            <option value="">All Stock Statuses</option>
+                                            <option value="normal">In Stock Only</option>
+                                            <option value="low">Low / Out of Stock Warning</option>
+                                            <option value="out">Out of Stock Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {showDateModal !== 'recipe-cost' && showDateModal !== 'raw-materials' && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">From Date (Optional)</label>
@@ -404,6 +440,10 @@ const Reports = () => {
                                     const params = new URLSearchParams();
                                     if (dateRange.from) params.append('from', dateRange.from);
                                     if (dateRange.to) params.append('to', dateRange.to);
+                                    if (showDateModal === 'raw-materials') {
+                                        if (dateRange.categoryId) params.append('categoryId', dateRange.categoryId);
+                                        if (dateRange.stockStatus) params.append('stockStatus', dateRange.stockStatus);
+                                    }
                                     if ((showDateModal === 'products' || showDateModal === 'product-profit' || showDateModal === 'product-cost-track' || showDateModal === 'recipe-cost') && dateRange.productId) {
                                         params.append('productId', dateRange.productId);
                                     }
