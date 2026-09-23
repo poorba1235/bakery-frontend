@@ -71,9 +71,9 @@ const Dashboard = () => {
     },
     {
       title: dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
-        ? `Settlement Paid Invoices (${dashboardData.handoverDate})`
+        ? `Settled Paid Invoices (${dashboardData.handoverDate})`
         : "Today Settled Paid Invoices",
-      value: isAdmin ? `Rs. ${Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
+      value: isAdmin ? `Rs. ${Number(dashboardData.todayPaidInvoices || dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒',
       icon: Wallet,
       color: "text-teal-500",
       bg: "bg-teal-500/10",
@@ -120,7 +120,7 @@ const Dashboard = () => {
 
   const BAR_COLORS = ['#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
 
-  const netTodayCash = Number(dashboardData.todayHandover || 0) - Number(dashboardData.todayExpenses || 0);
+  const netTodayCash = Number(dashboardData.todayPaidInvoices || dashboardData.todayHandover || 0) - Number(dashboardData.todayExpenses || 0);
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-[#0f172a] text-slate-800 dark:text-white pb-12">
@@ -237,21 +237,21 @@ const Dashboard = () => {
                       <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20">
                         {dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
                           ? `Settled (${dashboardData.handoverDate})`
-                          : "Settlement Paid Invoices"}
+                          : "Settled Paid Invoices"}
                       </span>
                       <div className="p-2.5 rounded-xl bg-teal-500/20 text-teal-500">
                         <Wallet className="w-5 h-5" />
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Settled Paid Invoice Amount</p>
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Paid Invoice Cash Sum (Completed)</p>
                     <h4 className="text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tight mb-3">
-                      Rs. {Number(dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {Number(dashboardData.todayPaidInvoices || dashboardData.todayHandover || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
                       <ArrowUpRight className="w-4 h-4 text-emerald-500" />
                       {dashboardData.handoverDate && dashboardData.handoverDate !== new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Colombo' })
-                        ? `Total paid invoice amount for settled date (${dashboardData.handoverDate})`
-                        : "Total paid invoice cash collected across today's sales rep settlements"}
+                        ? `Paid invoice cash for completed settlements (${dashboardData.handoverDate})`
+                        : `Paid invoice cash collected for completed settlements only (${dashboardData.completedSettlementCount || 0} completed)`}
                     </p>
                   </motion.div>
 
